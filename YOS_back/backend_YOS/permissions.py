@@ -4,23 +4,28 @@ from rest_framework.permissions import BasePermission
 from django.conf import settings
 
 
-class IsTransportManager(BasePermission):
+class RolePermission(BasePermission):
+    """
+    Example usage:
+      permission_classes = [RolePermission]
+      and set on the view: view.allowed_roles = ['ceo', 'accountant']
+    If view.allowed_roles is not set, falls back to IsAuthenticated behavior.
+    """
+
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'transport_manager'
+        if not request.user or not request.user.is_authenticated:
+            return False
 
-
-class IsAccountant(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'accountant'
-
-
-class IsCEO(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'ceo'
+        allowed = getattr(view, "allowed_roles", None)
+        if allowed is None:
+            # no role restriction on this view
+            return True
+        return request.user.role in allowed
 
 
 class HasAPIKey(BasePermission):
     def has_permission(self, request, view):
-        if request.headers.get('X-API-KEY') == settings.FRONTEND_API_KEY:
-            return True
-        return False
+        key = request.headers.get('X-API-KEY') or request.GET.get('api_key')
+        if not key:
+            return False
+        return key == getattr(settings, "FRONTEND_API_KEY", None)
