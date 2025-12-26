@@ -48,7 +48,7 @@ export default function CarAnalytics() {
           </div>
         </div>
         <div className="w-full bg-white/20 rounded-full h-2">
-          <div className="bg-gradient-to-r from-cyan-400 to-blue-400 h-2 rounded-full w-3/4"></div>
+          <div className="bg-linear-to-r from-cyan-400 to-blue-400 h-2 rounded-full w-3/4"></div>
         </div>
         <p className="text-xs text-blue-300 mt-2">Fuel level: 75%</p>
       </div>

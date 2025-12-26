@@ -202,7 +202,7 @@ export default function ChartsSection() {
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+            <div className="mt-4 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
                   Today{"'"}s Total:

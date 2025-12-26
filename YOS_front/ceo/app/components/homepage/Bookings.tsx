@@ -135,7 +135,7 @@ export default function RecentBookings() {
                   <td className="py-4 px-4 font-medium">{booking.customer}</td>
                   <td className="py-4 px-4">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-50 rounded mr-3"></div>
+                      <div className="w-8 h-8 bg-linear-to-r from-blue-100 to-blue-50 rounded mr-3"></div>
                       <span>{booking.vehicle}</span>
                     </div>
                   </td>
