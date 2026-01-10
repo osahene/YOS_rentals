@@ -86,8 +86,8 @@ export default function SystemStatus() {
                   }}
                   className={`h-2 rounded-full ${
                     system.status === "optimal"
-                      ? "bg-gradient-to-r from-green-400 to-emerald-400"
-                      : "bg-gradient-to-r from-yellow-400 to-orange-400"
+                      ? "bg-linear-to-r from-green-400 to-emerald-400"
+                      : "bg-linear-to-r from-yellow-400 to-orange-400"
                   }`}
                   style={{ width: "0%" }}
                 ></div>
@@ -97,7 +97,7 @@ export default function SystemStatus() {
         })}
       </div>
 
-      <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg">
+      <div className="mt-6 p-4 bg-linear-to-r from-gray-50 to-gray-100 rounded-lg">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-700">Overall Health</p>

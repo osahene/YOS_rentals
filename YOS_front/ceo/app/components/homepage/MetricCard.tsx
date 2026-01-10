@@ -85,7 +85,7 @@ export default function MetricCards() {
           >
             <div className="flex items-center justify-between mb-4">
               <div
-                className={`p-3 rounded-xl bg-gradient-to-r ${metric.color} shadow-md`}
+                className={`p-3 rounded-xl bg-linear-to-r ${metric.color} shadow-md`}
               >
                 <Icon className="w-6 h-6 text-white" />
               </div>

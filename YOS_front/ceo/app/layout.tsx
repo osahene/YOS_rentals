@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-
+import { StoreProvider } from "./lib/store/StoreProvider";
 const inter = Inter({ subsets: ["latin"] });
-
+// import DashboardLayout from "./dashboard/layout";
 export const metadata: Metadata = {
   title: "YOS Admin Dashboard",
   description: "Super Admin Dashboard for YOS Car Rental",
@@ -24,7 +24,9 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${inter.className} antialiased`}>
+        <StoreProvider>{children}</StoreProvider>
+      </body>
     </html>
   );
 }
