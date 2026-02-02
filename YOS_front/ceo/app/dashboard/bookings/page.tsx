@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import {
   CalendarDays,
   TrendingUp,
-  DollarSign,
+  ReceiptCent,
   Car,
   CheckCircle,
   Clock,
@@ -27,6 +27,38 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import MetricsGrid from "@/app/components/homepage/MetricsGrid";
+
+const bookingMetrics = [
+  {
+    title: "Total Bookings",
+    value: "1,245",
+    change: "+12.5%",
+    icon: CalendarDays,
+    color: "bg-blue-600",
+  },
+  {
+    title: "Active Bookings",
+    value: "42",
+    change: "+1.5%",
+    icon: Clock,
+    color: "bg-blue-600",
+  },
+  {
+    title: "Revenue",
+    value: "¢87,200",
+    change: "+3%",
+    icon: ReceiptCent,
+    color: "bg-blue-600",
+  },
+  {
+    title: "Cancellation",
+    value: "0",
+    change: "0%",
+    icon: TrendingUp,
+    color: "bg-blue-600",
+  },
+];
 
 export default function BookingsPage() {
   const [dateRange, setDateRange] = useState("month");
@@ -143,61 +175,7 @@ export default function BookingsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Bookings
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                1,245
-              </p>
-            </div>
-            <CalendarDays className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Active Bookings
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                42
-              </p>
-            </div>
-            <Clock className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Revenue
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                $87,200
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-emerald-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Cancellation Rate
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                4.2%
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-red-500" />
-          </div>
-        </div>
-      </div>
-
+      <MetricsGrid metrics={bookingMetrics} />
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">

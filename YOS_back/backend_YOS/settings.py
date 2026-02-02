@@ -2,8 +2,12 @@ from pathlib import Path
 import os
 import sys
 from datetime import timedelta
+from dotenv import load_dotenv
 from socket import gethostbyname, gethostname
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -12,19 +16,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-
+SALT_KEY = os.environ.get("DJANGO_SALT_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', ]
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', ]
 
 # Load your environment variable securely
 FERNET_KEY = os.environ.get('DJANGO_FERNET_KEY', None)
-
 if not FERNET_KEY:
     raise ValueError("DJANGO_FERNET_KEY environment variable is not set!")
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
 ALLOWED_HOSTS.extend(
     filter(None, os.environ.get('ALLOWED_HOSTS', '').split(',')))
 ALLOWED_HOSTS.append(gethostbyname(gethostname()))
@@ -48,10 +51,9 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_ratelimit',
     'rest_auth',
-    "accounts",
-    "ceo",
-    "finances",
-    "vehicle",
+    "account",
+    "car",
+    # "finances",
 ]
 
 SITE_ID = 1
@@ -145,7 +147,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-AUTH_USER_MODEL = "account.AbstractUserProfile"
+AUTH_USER_MODEL = "account.User"
 
 # ===== Cookie Settings =====
 # Session Cookies
@@ -210,13 +212,18 @@ CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 # ===== REST Framework Settings =====
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'accounts.authentication.CookieJWTAuthentication',  # Custom authentication
+        'account.authentication.CookieJWTAuthentication',  # Custom authentication
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+AUTHENTICATION_BACKENDS = [
+    'account.backend.EncryptedEmailBackend', # Your new backend
+    'django.contrib.auth.backends.ModelBackend', # Default backup
+]
 
 # ===== JWT Settings =====
 SIMPLE_JWT = {

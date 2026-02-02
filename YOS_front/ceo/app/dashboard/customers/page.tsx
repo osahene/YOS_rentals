@@ -14,7 +14,9 @@ import {
   Search,
   Phone,
   Calendar,
+  TrendingUp,
 } from "lucide-react";
+import MetricsGrid from "@/app/components/homepage/MetricsGrid";
 
 export default function CustomersPage() {
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
@@ -130,6 +132,37 @@ export default function CustomersPage() {
     alert("Message sent successfully!");
   };
 
+  const customerMetrics = [
+    {
+      title: "Total Customers",
+      value: customers.length,
+      change: "0%",
+      icon: Users,
+      color: "from-pink-500 to-rose-500",
+    },
+    {
+      title: "Active Customers",
+      value: 198,
+      change: "+3%",
+      icon: Users,
+      color: "from-blue-500 to-indigo-500",
+    },
+    {
+      title: "VIP Customers",
+      value: 24,
+      change: "+5%",
+      icon: Star,
+      color: "from-red-500 to-orange-500",
+    },
+    {
+      title: "Average Bookings",
+      value: 300,
+      change: "6%",
+      icon: TrendingUp,
+      color: "from-yellow-500 to-amber-500",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,60 +178,7 @@ export default function CustomersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Customers
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                245
-              </p>
-            </div>
-            <Users className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Active Customers
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                198
-              </p>
-            </div>
-            <Users className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                VIP Customers
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                24
-              </p>
-            </div>
-            <Star className="w-8 h-8 text-yellow-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Avg. Bookings
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                8.2
-              </p>
-            </div>
-            <Calendar className="w-8 h-8 text-purple-500" />
-          </div>
-        </div>
-      </div>
+      <MetricsGrid metrics={customerMetrics} />
 
       {/* Filters and Search */}
       <div className="flex flex-col md:flex-row gap-4">

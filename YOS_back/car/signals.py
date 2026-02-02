@@ -1,10 +1,9 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.contrib.auth import get_user_model
+from account.models import User
 from .models import Customer, Booking, BookingHistory
 from django.utils import timezone
 
-User = get_user_model()
 
 
 @receiver(post_save, sender=User)
@@ -16,7 +15,6 @@ def create_customer_profile(sender, instance, created, **kwargs):
             first_name=instance.first_name or '',
             last_name=instance.last_name or '',
             email=instance.email or '',
-            phone=instance.phone or ''
         )
 
 

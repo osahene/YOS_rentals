@@ -21,6 +21,7 @@ import { FiPieChart, FiBarChart } from "react-icons/fi";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
+import CarAnalytics from "./Analytics";
 
 // Register GSAP Plugin
 if (typeof window !== "undefined") {
@@ -70,10 +71,10 @@ export default function ChartsSection() {
     <div className="p-6">
       <div className="space-y-6" ref={chartRef}>
         {/* Revenue Trend Chart */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                 Revenue Analytics
               </h3>
               <p className="text-sm text-gray-600">
@@ -91,12 +92,12 @@ export default function ChartsSection() {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" stroke="#666" />
-                <YAxis stroke="#666" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis dataKey="month" stroke="#9CA3AF" />
+                <YAxis stroke="#9CA3AF" />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "white",
+                    backgroundColor: "#1F2937",
                     border: "1px solid #e5e7eb",
                     borderRadius: "0.5rem",
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
@@ -123,16 +124,64 @@ export default function ChartsSection() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Car Type Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
+ {/* Booking Performance */}
+          <div className="bg-white dark:bg-gray-800  backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                  Daily Bookings
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-white">
+                  Today{"'"}s booking performance
+                </p>
+              </div>
+              <FiBarChart className="w-5 h-5 text-blue-500" />
+            </div>
+
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { hour: "9AM", bookings: 45 },
+                    { hour: "12PM", bookings: 68 },
+                    { hour: "3PM", bookings: 72 },
+                    { hour: "6PM", bookings: 55 },
+                    { hour: "9PM", bookings: 30 },
+                  ]}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="hour" stroke="#666" />
+                  <YAxis stroke="#666" />
+                  <Tooltip />
+                  <Bar
+                    dataKey="bookings"
+                    fill="#3B82F6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-4 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">
+                  Today{"'"}s Total:
+                </span>
+                <span className="text-xl font-bold text-blue-600">
+                  240 Bookings
+                </span>
+              </div>
+            </div>
+          </div>
+        {/* Car Type Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-gray-800  backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                   Car Type Distribution
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-white">
                   Fleet composition analysis
                 </p>
               </div>
@@ -163,57 +212,10 @@ export default function ChartsSection() {
               </ResponsiveContainer>
             </div>
           </div>
+<CarAnalytics />
 
-          {/* Booking Performance */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Daily Bookings
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Today{"'"}s booking performance
-                </p>
-              </div>
-              <FiBarChart className="w-5 h-5 text-blue-500" />
-            </div>
-
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { hour: "9AM", bookings: 45 },
-                    { hour: "12PM", bookings: 68 },
-                    { hour: "3PM", bookings: 72 },
-                    { hour: "6PM", bookings: 55 },
-                    { hour: "9PM", bookings: 30 },
-                  ]}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="hour" stroke="#666" />
-                  <YAxis stroke="#666" />
-                  <Tooltip />
-                  <Bar
-                    dataKey="bookings"
-                    fill="#3B82F6"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="mt-4 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Today{"'"}s Total:
-                </span>
-                <span className="text-xl font-bold text-blue-600">
-                  240 Bookings
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
+         
       </div>
     </div>
   );

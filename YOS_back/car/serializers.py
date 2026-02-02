@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
     User, Customer, Car, Driver, Payment, Booking,
-    BookingHistory, Invoice, SMSLog, EmailLog
+    BookingHistory, Invoice, SMSLog, EmailLog, Expense, ExpenseCategory, CapitalExpenditure, FinancialReport
 )
 from django.utils import timezone
 import uuid
@@ -76,12 +76,12 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 
-    def validate(self, data):
-        method = data.get('method')
+    def validate(self, attrs):
+        method = attrs.get('method')
 
         # Validate mobile money details
         if method == 'mobile_money':
-            if not data.get('mobile_money_phone'):
+            if not attrs.get('mobile_money_phone'):
                 raise serializers.ValidationError(
                     {"mobile_money_phone": "Phone number is required for mobile money payment"})
 
@@ -91,11 +91,11 @@ class PaymentSerializer(serializers.ModelSerializer):
                                'pay_in_slip_payee_name', 'pay_in_slip_reference_number',
                                'pay_in_slip_number']
             for field in required_fields:
-                if not data.get(field):
+                if not attrs.get(field):
                     raise serializers.ValidationError(
                         {field: "This field is required for pay-in-slip payment"})
 
-        return data
+        return attrs
 
 
 class BookingSerializer(serializers.ModelSerializer):
@@ -112,11 +112,11 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at',
                             'subtotal', 'total_amount', 'duration_days']
 
-    def validate(self, data):
+    def validate(self, attrs):
         # Check if car is available
-        car = data.get('car')
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
+        car = attrs.get('car')
+        start_date = attrs.get('start_date')
+        end_date = attrs.get('end_date')
 
         if car and start_date and end_date:
             # Check for overlapping bookings
@@ -133,29 +133,29 @@ class BookingSerializer(serializers.ModelSerializer):
                 )
 
         # Validate self-drive requirements
-        if data.get('is_self_drive'):
+        if attrs.get('is_self_drive'):
             required_fields = ['driver_license_id', 'driver_license_class',
                                'driver_license_issue_date', 'driver_license_expiry_date']
             for field in required_fields:
-                if not data.get(field):
+                if not attrs.get(field):
                     raise serializers.ValidationError(
                         {field: "This field is required for self-drive booking"}
                     )
 
             # Check license expiry
-            expiry_date = data.get('driver_license_expiry_date')
+            expiry_date = attrs.get('driver_license_expiry_date')
             if expiry_date and expiry_date < timezone.now().date():
                 raise serializers.ValidationError(
                     {"driver_license_expiry_date": "Driver's license has expired"}
                 )
         else:
             # Validate driver selection
-            if not data.get('driver'):
+            if not attrs.get('driver'):
                 raise serializers.ValidationError(
                     {"driver": "Driver is required for chauffeur-driven bookings"}
                 )
 
-        return data
+        return attrs
 
     def create(self, validated_data):
         # Calculate pricing
@@ -284,3 +284,168 @@ class DashboardStatsSerializer(serializers.Serializer):
     pending_payments = serializers.IntegerField()
     monthly_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
     monthly_bookings = serializers.IntegerField()
+
+
+# Add these serializers at the end of serializers.py
+
+class ExpenseCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseCategory
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(
+        source='category.name', read_only=True)
+    car_details = serializers.SerializerMethodField()
+    recorded_by_name = serializers.CharField(
+        source='recorded_by.get_full_name', read_only=True)
+    approved_by_name = serializers.CharField(
+        source='approved_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = Expense
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_car_details(self, obj):
+        if obj.car:
+            return {
+                'id': obj.car.id,
+                'make': obj.car.make,
+                'model': obj.car.model,
+                'license_plate': obj.car.license_plate
+            }
+        return None
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than 0")
+        return value
+
+
+class CapitalExpenditureSerializer(serializers.ModelSerializer):
+    car_details = CarSerializer(source='car', read_only=True)
+    current_depreciation = serializers.SerializerMethodField()
+    current_book_value = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CapitalExpenditure
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at',
+                            'updated_at', 'total_initial_cost']
+
+    def get_current_depreciation(self, obj):
+        return obj.calculate_depreciation_to_date()
+
+    def get_current_book_value(self, obj):
+        depreciation = obj.calculate_depreciation_to_date()
+        return obj.total_initial_cost - depreciation
+
+
+class FinancialReportSerializer(serializers.ModelSerializer):
+    generated_by_name = serializers.CharField(
+        source='generated_by.get_full_name', read_only=True)
+    period_duration = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FinancialReport
+        fields = '__all__'
+        read_only_fields = ['id', 'generated_at', 'total_income', 'total_operating_expenses',
+                            'total_capital_expenditure', 'net_profit', 'profit_margin',
+                            'income_breakdown', 'expense_breakdown', 'vehicle_performance',
+                            'financial_metrics']
+
+    def get_period_duration(self, obj):
+        delta = obj.period_end - obj.period_start
+        return delta.days + 1
+
+
+class FinancialSummarySerializer(serializers.Serializer):
+    period_start = serializers.DateField()
+    period_end = serializers.DateField()
+
+    # Income
+    total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
+    booking_income = serializers.DecimalField(max_digits=12, decimal_places=2)
+    other_income = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    # Expenses
+    total_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+    maintenance_expenses = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+    insurance_expenses = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+    fuel_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+    staff_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+    administrative_expenses = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+    other_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    # Capital Expenditure
+    capital_expenditure = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+    new_car_purchases = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+    major_repairs = serializers.DecimalField(max_digits=12, decimal_places=2)
+    equipment_purchases = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+
+    # Profitability
+    gross_profit = serializers.DecimalField(max_digits=12, decimal_places=2)
+    net_profit = serializers.DecimalField(max_digits=12, decimal_places=2)
+    profit_margin = serializers.FloatField()
+
+    # Vehicle Performance
+    total_vehicles = serializers.IntegerField()
+    active_vehicles = serializers.IntegerField()
+    average_utilization_rate = serializers.FloatField()
+    revenue_per_vehicle = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+    profit_per_vehicle = serializers.DecimalField(
+        max_digits=12, decimal_places=2)
+
+    # Charts Data
+    monthly_breakdown = serializers.ListField(child=serializers.DictField())
+    category_breakdown = serializers.ListField(child=serializers.DictField())
+    vehicle_performance = serializers.ListField(child=serializers.DictField())
+
+
+class ReportRequestSerializer(serializers.Serializer):
+    report_type = serializers.ChoiceField(
+        choices=['monthly', 'annual', 'custom'])
+    year = serializers.IntegerField(required=False)
+    month = serializers.IntegerField(required=False, min_value=1, max_value=12)
+    start_date = serializers.DateField(required=False)
+    end_date = serializers.DateField(required=False)
+    include_charts = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        report_type = attrs.get('report_type')
+
+        if report_type == 'monthly':
+            if not attrs.get('year') or not attrs.get('month'):
+                raise serializers.ValidationError({
+                    "year": "Year is required for monthly report",
+                    "month": "Month is required for monthly report"
+                })
+
+        elif report_type == 'annual':
+            if not attrs.get('year'):
+                raise serializers.ValidationError({
+                    "year": "Year is required for annual report"
+                })
+
+        elif report_type == 'custom':
+            if not attrs.get('start_date') or not attrs.get('end_date'):
+                raise serializers.ValidationError({
+                    "start_date": "Start date is required for custom report",
+                    "end_date": "End date is required for custom report"
+                })
+            if attrs['start_date'] > attrs['end_date']:
+                raise serializers.ValidationError({
+                    "start_date": "Start date must be before end date"
+                })
+
+        return attrs

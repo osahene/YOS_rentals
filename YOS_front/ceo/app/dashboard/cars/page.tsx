@@ -5,16 +5,17 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../../lib/store/store";
 import { setSelectedCar } from "../../lib/store/slices/carsSlice";
 import { useRouter } from "next/navigation";
+import MetricsGrid from "@/app/components/homepage/MetricsGrid";
 import {
   Plus,
   Car,
   TrendingUp,
-  DollarSign,
   Wrench,
   Star,
   MoreVertical,
   Filter,
   Search,
+  ReceiptCent,
 } from "lucide-react";
 
 export default function CarsPage() {
@@ -53,6 +54,36 @@ export default function CarsPage() {
     (car) => car.status === "maintenance"
   ).length;
 
+  const carMetrics = [
+    {
+      title: "Total Cars",
+      value: cars.length,
+      change: "0%",
+      icon: Car,
+      color: "from-pink-500 to-rose-500",
+    },
+    {
+      title: "Total Revenue",
+      value: totalRevenue.toLocaleString(),
+      change: "+1.5%",
+      icon: TrendingUp,
+      color: "from-blue-500 to-indigo-500",
+    },
+    {
+      title: "Total Expenses",
+      value: totalExpenses.toLocaleString(),
+      change: "+3%",
+      icon: ReceiptCent,
+      color: "from-red-500 to-orange-500",
+    },
+    {
+      title: "Under Maintenance",
+      value: maintenanceCount,
+      change: "0%",
+      icon: Wrench,
+      color: "from-yellow-500 to-amber-500",
+    },
+  ];
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -75,60 +106,7 @@ export default function CarsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Cars
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                {cars.length}
-              </p>
-            </div>
-            <Car className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Revenue
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                $ {totalRevenue.toLocaleString()}
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total Expenses
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                ${totalExpenses.toLocaleString()}
-              </p>
-            </div>
-            <DollarSign className="w-8 h-8 text-red-500" />
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Under Maintenance
-              </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
-                {maintenanceCount}
-              </p>
-            </div>
-            <Wrench className="w-8 h-8 text-yellow-500" />
-          </div>
-        </div>
-      </div>
+      <MetricsGrid metrics={carMetrics} />
 
       {/* Filters and Search */}
       <div className="flex flex-col md:flex-row gap-4">
@@ -176,7 +154,7 @@ export default function CarsPage() {
             >
               {/* Car Color Background */}
               <div className="h-32 w-full" style={{ backgroundColor }}>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
               </div>
 
               {/* Car Info */}

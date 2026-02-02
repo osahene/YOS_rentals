@@ -1,32 +1,32 @@
 "use client";
 
 import { Car, Wifi, Navigation, Music, Zap } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
+// import { useEffect, useRef } from "react";
+// import { gsap } from "gsap";
 
 export default function CarAnalytics() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      gsap.from(containerRef.current.children, {
-        duration: 0.8,
-        y: 30,
-        opacity: 0,
-        stagger: 0.1,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 80%",
-        },
-      });
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (containerRef.current) {
+  //     gsap.from(containerRef.current.children, {
+  //       duration: 0.8,
+  //       y: 30,
+  //       opacity: 0,
+  //       stagger: 0.1,
+  //       ease: "power3.out",
+  //       scrollTrigger: {
+  //         trigger: containerRef.current,
+  //         start: "top 80%",
+  //       },
+  //     });
+  //   }
+  // }, []);
 
   return (
     <div
-      ref={containerRef}
-      className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 shadow-xl text-white"
+      // ref={containerRef}
+      className="bg-linear-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 shadow-xl text-white"
     >
       <div className="flex items-center justify-between mb-6">
         <div>

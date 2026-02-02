@@ -3,8 +3,8 @@
 import { CiCircleCheck, CiClock2 } from "react-icons/ci";
 import { BsArrowsExpand } from "react-icons/bs";
 import { LuCircleX } from "react-icons/lu";
-import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
+// import { useEffect, useRef } from "react";
+// import { gsap } from "gsap";
 
 const bookings = [
   {
@@ -54,32 +54,34 @@ const bookings = [
 ];
 
 export default function RecentBookings() {
-  const tableRef = useRef<HTMLDivElement>(null);
+  // const tableRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (tableRef.current) {
-      gsap.from(tableRef.current.querySelectorAll("tr"), {
-        duration: 0.6,
-        y: 20,
-        opacity: 0,
-        stagger: 0.1,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: tableRef.current,
-          start: "top 80%",
-        },
-      });
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (tableRef.current) {
+  //     gsap.from(tableRef.current.querySelectorAll("tr"), {
+  //       duration: 0.6,
+  //       y: 20,
+  //       opacity: 0,
+  //       stagger: 0.1,
+  //       ease: "power3.out",
+  //       scrollTrigger: {
+  //         trigger: tableRef.current,
+  //         start: "top 80%",
+  //       },
+  //     });
+  //   }
+  // }, []);
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
+    <div className="bg-white/90 dark:bg-gray-800 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
             Recent Bookings
           </h3>
-          <p className="text-sm text-gray-600">Latest rental transactions</p>
+          <p className="text-sm text-gray-600 dark:text-white">
+            Latest rental transactions
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <span className="flex items-center text-sm text-green-600 font-semibold">
@@ -89,32 +91,32 @@ export default function RecentBookings() {
         </div>
       </div>
 
-      <div ref={tableRef} className="overflow-x-auto">
+      <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+            <tr className="border-b border-gray-200  dark:border-gray-700">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Booking ID
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Customer
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Vehicle
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Pickup Date
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Return Date
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Location
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Status
               </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600  dark:text-gray-300">
                 Actions
               </th>
             </tr>
@@ -125,17 +127,19 @@ export default function RecentBookings() {
               return (
                 <tr
                   key={booking.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   <td className="py-4 px-4">
-                    <span className="font-mono font-semibold text-blue-600">
+                    <span className="font-mono font-semibold  text-blue-600 dark:text-blue-400">
                       {booking.id}
                     </span>
                   </td>
-                  <td className="py-4 px-4 font-medium">{booking.customer}</td>
+                  <td className="py-4 px-4 font-medium  text-gray-800 dark:text-white">
+                    {booking.customer}
+                  </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-linear-to-r from-blue-100 to-blue-50 rounded mr-3"></div>
+                      {/* <div className="w-8 h-8 bg-linear-to-r from-blue-100 to-blue-50 rounded mr-3"></div> */}
                       <span>{booking.vehicle}</span>
                     </div>
                   </td>

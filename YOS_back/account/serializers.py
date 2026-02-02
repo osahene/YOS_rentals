@@ -2,8 +2,8 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate, password_validation, get_user_model
 from django.core.validators import validate_email
+from .models import User
 
-User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -28,7 +28,10 @@ class RegistrationSerializer(serializers.Serializer):
     phone_number = serializers.CharField(
         max_length=50, required=False, allow_blank=True)
     role = serializers.ChoiceField(
-        choices=[c[0] for c in User.ROLE_CHOICES], required=False, default='customer')
+        choices=[c[0] for c in ROLE_CHOICES], 
+        required=False, 
+        default='customer'
+    )
 
     def validate_email(self, value):
         validate_email(value)
@@ -44,7 +47,6 @@ class RegistrationSerializer(serializers.Serializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User.objects.create_user(password=password, **validated_data)
-        # ensure phone_hmac computed on save (model save override)
         user.save()
         return user
 
@@ -53,16 +55,16 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
-    def validate(self, data):
-        email = data.get("email")
-        password = data.get("password")
+    def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
         user = authenticate(username=email, password=password)
         if user is None:
             raise serializers.ValidationError("Invalid credentials.")
         if not user.is_active:
             raise serializers.ValidationError("User account is disabled.")
-        data['user'] = user
-        return data
+        attrs['user'] = user
+        return attrs
 
 
 class ChangePasswordSerializer(serializers.Serializer):
