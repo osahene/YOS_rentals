@@ -79,9 +79,10 @@ class AbstractUserProfile(AbstractBaseUser, PermissionsMixin):
 
         # Phone fields
     country_code = EncryptedCharField(max_length=10, default="+233")
-    phone_number = EncryptedCharField(max_length=50, null=True, blank=True)
+    country_code_hash = models.CharField(max_length=128, db_index=True, editable=False)
 
-    # Non-reversible HMAC lookup (stored in plaintext)
+
+    phone_number = EncryptedCharField(max_length=50, null=True, blank=True)
     phone_hmac = models.CharField(
         max_length=128, db_index=True, editable=False)
 
@@ -99,7 +100,6 @@ class AbstractUserProfile(AbstractBaseUser, PermissionsMixin):
         default=AUTH_PROVIDERS.get("email"),
     )
 
-    # Django Auth
     USERNAME_FIELD = "email"
 
     objects = UserManager()
@@ -158,18 +158,15 @@ class User(AbstractUserProfile):
 
     def save(self, *args, **kwargs):
         if self.first_name:
-            self.first_name_hash = hashlib.sha256(
-                self.first_name.encode()).hexdigest()
+            self.first_name_hash = compute_hmac(self.first_name)
         else:
             self.first_name_hash = ''
         if self.last_name:
-            self.last_name_hash = hashlib.sha256(
-                self.last_name.encode()).hexdigest()
+            self.last_name_hash = compute_hmac(self.last_name)
         else:
             self.last_name_hash = ''
         if self.role:
-            self.role_hash = hashlib.sha256(
-                self.role.encode()).hexdigest()
+            self.role_hash = compute_hmac(self.role)
         else:
             self.role_hash = ''
         return super().save(*args, **kwargs)

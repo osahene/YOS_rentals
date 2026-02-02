@@ -1,22 +1,26 @@
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
-from account.models import compute_hmac, User
+from account.models import compute_hmac
+from typing import Any
 
+User = get_user_model()
 
 class EncryptedEmailBackend(ModelBackend):
-    def authenticate(self, request, username, password, **kwargs):
+    def authenticate(self, request: Any, username: str | None = None, password: str | None = None, **kwargs: Any) -> Any:
         if username is None:
             username = kwargs.get(User.USERNAME_FIELD)
         
+        if not username:
+            return None
+        
         try:
-            # 1. Hash the incoming email attempt
             target_hash = compute_hmac(username.lower().strip())
             
-            # 2. Search by the HASH, not the encrypted email field
             user = User.objects.get(email_hash=target_hash)
             
-            # 3. Check the password
-            if user.check_password(password) and self.user_can_authenticate(user):
+            if password and user.check_password(password) and self.user_can_authenticate(user):
                 return user
         except User.DoesNotExist:
             return None
+        
+        return None
