@@ -84,9 +84,6 @@ export interface CarFormData {
   vin?: string;
   purchase_price: number;
   purchase_date: string;
-  daily_rate: number;
-  weekly_rate?: number;
-  monthly_rate?: number;
   fuel_type: "petrol" | "diesel" | "electric" | "hybrid";
   transmission: "automatic" | "manual";
   seats: number;

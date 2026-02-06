@@ -17,12 +17,12 @@ const apiService = {
   generateRegister: (data: any) =>
     $axios.post("/account/user-register-generate-otp/", data),
   // Register Cars
-  createCar: (data: any) => $axios.post("/car/register_car/", data),
-  fetchCars: () => $axios.get("/car/fetch_cars/"),
-  fetchCarById: (id: string) => $axios.get(`/car/${id}/`),
-  updateCar: (id: string, data: any) => $axios.put(`/car/${id}/`, data),
-  deleteCar: (id: string) => $axios.delete(`/car/${id}/`),
-  updateCarStatus: (id: string, status: string) => $axios.put(`/car/${id}/update-status/`, { status }),
+  createCar: (data: any) => $axios.post("/cars/", data),
+  fetchCars: () => $axios.get("/cars/"),
+  fetchCarById: (id: string) => $axios.get(`/cars/${id}/`),
+  updateCar: (id: string, data: any) => $axios.put(`/cars/${id}/`, data),
+  deleteCar: (id: string) => $axios.delete(`/cars/${id}/`),
+  updateCarStatus: (id: string, status: string) => $axios.put(`/cars/${id}/update-status/`, { status }),
   
 };
 
