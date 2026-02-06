@@ -16,6 +16,13 @@ const apiService = {
   // Generate OTP
   generateRegister: (data: any) =>
     $axios.post("/account/user-register-generate-otp/", data),
+  // Register Cars
+  createCar: (data: any) => $axios.post("/car/register_car/", data),
+  fetchCars: () => $axios.get("/car/fetch_cars/"),
+  fetchCarById: (id: string) => $axios.get(`/car/${id}/`),
+  updateCar: (id: string, data: any) => $axios.put(`/car/${id}/`, data),
+  deleteCar: (id: string) => $axios.delete(`/car/${id}/`),
+  updateCarStatus: (id: string, status: string) => $axios.put(`/car/${id}/update-status/`, { status }),
   
 };
 

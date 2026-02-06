@@ -12,7 +12,7 @@ import storage from 'redux-persist/lib/storage';
 const rootPersistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth", "contact"], // Only persist the auth slice
+  whitelist: ["auth", "ui"], // Only persist the auth slice
 };
 
 const rootReducer = combineReducers({
@@ -33,7 +33,7 @@ export const store = configureStore({
       serializableCheck: {
       ignoredActions: ["persist/PERSIST", "persist/REHYDRATE", "persist/REGISTER", "persist/FLUSH", "persist/PAUSE", "persist/PURGE"],
         // Ignore these field paths in all actions
-        ignoredActionPaths: ['payload.vehicle', 'payload.customer', 'payload.staff', 'payload.booking'],
+        ignoredActionPaths: ['payload.vehicle', 'payload.customer', 'payload.staff', 'payload.booking', 'meta.arg', 'payload'],
         // Ignore these paths in the state
         ignoredPaths: ['cars.selectedCar', 'customers.selectedCustomer', 'bookings.selectedBooking', 'staff.selectedStaff'],
       },

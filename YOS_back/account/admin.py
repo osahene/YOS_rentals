@@ -1,28 +1,27 @@
 from django.contrib import admin
-from .models import ( User, Customer )
-# from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-# Register your models here.
+from .models import ( User )
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-# class UserAdmin(BaseUserAdmin):
-#     list_display = ('email', 'first_name',
-#                     'last_name', 'role', 'is_staff')
-#     list_filter = ('role', 'is_staff', 'is_superuser')
-#     fieldsets = (
-#         (None, {'fields': ('email', 'password')}),
-#         ('Personal Info', {'fields': ('first_name',
-#          'last_name', 'email', 'phone', 'profile_image')}),
-#         ('Permissions', {'fields': ('role', 'is_active', 'is_staff',
-#          'is_superuser', 'groups', 'user_permissions')}),
-#         ('Important dates', {'fields': ('last_login', 'date_joined')}),
-#     )
-#     add_fieldsets = (
-#         (None, {
-#             'classes': ('wide',),
-#             'fields': ('email', 'password1', 'password2', 'role'),
-#         }),
-#     )
-#     search_fields = ('email', 'first_name', 'last_name')
-#     ordering = ('email',)
+class UserAdmin(BaseUserAdmin):
+    list_display = ('email', 'first_name',
+                    'last_name', 'role', 'is_staff')
+    list_filter = ('role', 'is_staff', 'is_superuser')
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal Info', {'fields': ('first_name',
+         'last_name', 'email', 'phone', 'profile_image')}),
+        ('Permissions', {'fields': ('role', 'is_active', 'is_staff',
+         'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'role'),
+        }),
+    )
+    search_fields = ('email', 'first_name', 'last_name')
+    ordering = ('email',)
 
 # class CustomerAdmin(admin.ModelAdmin):
 #     list_display = ('full_name', 'email', 'phone', 'ghana_card_id',
@@ -56,4 +55,3 @@ from .models import ( User, Customer )
 
 
 admin.site.register(User)
-admin.site.register(Customer)

@@ -117,9 +117,7 @@ export default function RegisterNewCarPage() {
     vin: "",
     purchase_price: 0,
     purchase_date: new Date().toISOString().split("T")[0],
-    daily_rate: 0,
-    weekly_rate: 0,
-    monthly_rate: 0,
+   
     fuel_type: "petrol",
     transmission: "automatic",
     seats: 5,
@@ -149,7 +147,7 @@ export default function RegisterNewCarPage() {
 
     setFormData((prev) => ({
       ...prev,
-      insurance_expiry: nextYear.toISOString().split("T")[0],
+      insurance_end_date: nextYear.toISOString().split("T")[0],
       last_service_date: today.toISOString().split("T")[0],
       next_service_date: nextService.toISOString().split("T")[0],
     }));
@@ -241,8 +239,6 @@ export default function RegisterNewCarPage() {
     if (!formData.license_plate.trim()) errors.license_plate = "License plate is required";
     if (!formData.purchase_price || formData.purchase_price <= 0) 
       errors.purchase_price = "Valid purchase price is required";
-    if (!formData.daily_rate || formData.daily_rate <= 0) 
-      errors.daily_rate = "Valid daily rate is required";
     if (!formData.mileage && formData.mileage !== 0) 
       errors.mileage = "Mileage is required";
     if (!formData.insurance_company) 
@@ -251,6 +247,8 @@ export default function RegisterNewCarPage() {
       errors.policy_number = "Policy number is required";
     if (!formData.policy_type) 
       errors.policy_type = "Policy type is required";
+    if (!formData.insurance_amount || formData.insurance_amount <= 0)
+      errors.insurance_amount = "Valid insurance amount is required";
     if (!formData.insurance_start_date) 
       errors.insurance_start_date = "Insurance start date is required";
     if (!formData.insurance_end_date) 
@@ -266,25 +264,9 @@ export default function RegisterNewCarPage() {
     if (!validateForm()) {
       return;
     }
-
-    // Create FormData for file upload
-    const formDataToSend = new FormData();
-    
-    // Append all form data
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === "images" && Array.isArray(value)) {
-        value.forEach((file, index) => {
-          formDataToSend.append(`images`, file);
-        });
-      } else if (Array.isArray(value)) {
-        formDataToSend.append(key, JSON.stringify(value));
-      } else if (value !== null && value !== undefined) {
-        formDataToSend.append(key, value.toString());
-      }
-    });
-
     try {
-      const result = await dispatch(createCar(formDataToSend)).unwrap();
+      const result = await dispatch(createCar(formData)).unwrap();
+      console.log("Car created:", result);
       if (result) {
         alert("Car registered successfully!");
         router.push("/dashboard/cars");
@@ -646,7 +628,7 @@ export default function RegisterNewCarPage() {
             {/* Purchase Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Purchase Price ($) *
+                Purchase Price (¢) *
               </label>
               <input
                 type="number"
@@ -684,63 +666,7 @@ export default function RegisterNewCarPage() {
               />
             </div>
 
-            {/* Daily Rate */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Daily Rental Rate ($) *
-              </label>
-              <input
-                type="number"
-                name="daily_rate"
-                value={formData.daily_rate}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.daily_rate
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
-                required
-              />
-              {formErrors.daily_rate && (
-                <p className="mt-1 text-sm text-red-600">
-                  {formErrors.daily_rate}
-                </p>
-              )}
-            </div>
-
-            {/* Weekly Rate */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Weekly Rate ($)
-              </label>
-              <input
-                type="number"
-                name="weekly_rate"
-                value={formData.weekly_rate || 0}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-
-            {/* Monthly Rate */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Monthly Rate ($)
-              </label>
-              <input
-                type="number"
-                name="monthly_rate"
-                value={formData.monthly_rate || 0}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
+            
           </div>
         </motion.div>
 
@@ -883,19 +809,19 @@ export default function RegisterNewCarPage() {
               </label>
               <input
                 type="date"
-                name="insurance_expiry"
+                name="insurance_end_date"
                 value={formData.insurance_end_date}
                 onChange={handleInputChange}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.insurance_expiry
+                  formErrors.insurance_end_date
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
                 }`}
                 required
               />
-              {formErrors.insurance_expiry && (
+              {formErrors.insurance_end_date && (
                 <p className="mt-1 text-sm text-red-600">
-                  {formErrors.insurance_expiry}
+                  {formErrors.insurance_end_date}
                 </p>
               )}
             </div>

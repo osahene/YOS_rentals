@@ -2,6 +2,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { Car, CarFormData, ApiResponse } from "../types/car";
 import { RootState } from "../store";
+import apiService from "@/app/utils/APIPaths";
+
+const getErrorMessage = (error: any) => {
+  return error.response?.data?.message || error.message || "An error occurred";
+};
 
 interface CarsState {
   cars: Car[];
@@ -24,14 +29,10 @@ export const fetchCars = createAsyncThunk(
   "cars/fetchCars",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/cars/");
-      if (!response.ok) {
-        throw new Error("Failed to fetch cars");
-      }
-      const data: ApiResponse<Car[]> = await response.json();
-      return data.data;
+      const response = await apiService.fetchCars();
+      return response.data; // Adjust based on your actual API shape
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -40,38 +41,43 @@ export const fetchCarById = createAsyncThunk(
   "cars/fetchCarById",
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/cars/${id}/`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch car");
-      }
-      const data: ApiResponse<Car> = await response.json();
-      return data.data;
+      const response = await apiService.fetchCarById(id);
+      return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
 
-export const createCar = createAsyncThunk(
+// THE FIX: Accept 'CarFormData' (plain object), NOT 'FormData'
+export const createCar = createAsyncThunk<Car, CarFormData, { rejectValue: string }>(
   "cars/createCar",
-  async (carData: FormData, { rejectWithValue }) => {
+  async (plainCarData: CarFormData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/cars/", {
-        method: "POST",
-        body: carData,
-        // Note: Don't set Content-Type header when sending FormData
-        // The browser will set it automatically with the correct boundary
+      // 1. Convert Plain Object -> FormData INSIDE the thunk
+      const formDataToSend = new FormData();
+
+      Object.entries(plainCarData).forEach(([key, value]) => {
+        if (key === "images" && Array.isArray(value)) {
+          value.forEach((file) => {
+            formDataToSend.append(`images`, file);
+          });
+        } else if (Array.isArray(value)) {
+          // If your backend expects arrays as JSON strings
+          formDataToSend.append(key, JSON.stringify(value));
+        } else if (value !== null && value !== undefined) {
+          formDataToSend.append(key, value.toString());
+        }
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create car");
+
+      const response = await apiService.createCar(formDataToSend);
+      console.log("Create Car Response:", response);
+      if (response.status === 201 || response.status === 200) {
+        return response.data;
       }
-      
-      const data: ApiResponse<Car> = await response.json();
-      return data.data;
+      return rejectWithValue("Failed to create car");
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -80,22 +86,10 @@ export const updateCar = createAsyncThunk(
   "cars/updateCar",
   async ({ id, carData }: { id: string; carData: Partial<Car> }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/cars/${id}/`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(carData),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to update car");
-      }
-      
-      const data: ApiResponse<Car> = await response.json();
-      return data.data;
+      const response = await apiService.updateCar(id, carData);
+      return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -104,45 +98,25 @@ export const deleteCar = createAsyncThunk(
   "cars/deleteCar",
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/cars/${id}/`, {
-        method: "DELETE",
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to delete car");
-      }
-      
-      return id;
+      await apiService.deleteCar(id);
+      return id; // Return ID to remove it from state
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
 
 export const updateCarStatus = createAsyncThunk(
   "cars/updateCarStatus",
-  async ({ carId, status }: { carId: string; status: Car["status"] }, { rejectWithValue }) => {
+  async ({ carId, status }: { carId: string; status: string }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/cars/${carId}/status/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to update car status");
-      }
-      
-      const data: ApiResponse<Car> = await response.json();
-      return data.data;
+      const response = await apiService.updateCarStatus(carId, status);
+      return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
-
 // Slice
 export const carsSlice = createSlice({
   name: "cars",
@@ -191,7 +165,7 @@ export const carsSlice = createSlice({
     });
     builder.addCase(createCar.fulfilled, (state, action) => {
       state.creating = false;
-      state.cars.push(action.payload);
+      state.cars.unshift(action.payload);
     });
     builder.addCase(createCar.rejected, (state, action) => {
       state.creating = false;

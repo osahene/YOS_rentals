@@ -103,7 +103,7 @@ class AbstractUserProfile(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
 
     objects = UserManager()
-
+    
     def save(self, *args, **kwargs):
         """
         Auto-compute phone HMAC lookup field whenever phone_number is set or changed.
@@ -144,8 +144,9 @@ class User(AbstractUserProfile):
         verbose_name = 'User'
         verbose_name_plural = 'Users'
         indexes = [
-            models.Index(fields=['first_name', 'last_name'])
+            models.Index(fields=['first_name_hash', 'last_name_hash'])
         ]
+    
 
     def get_full_name(self):
         # override: prefer decrypted encrypted fields
@@ -169,12 +170,12 @@ class User(AbstractUserProfile):
             self.role_hash = compute_hmac(self.role)
         else:
             self.role_hash = ''
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 class UserSession(models.Model):
     user = models.ForeignKey(
-        AbstractUserProfile,
+        User,
         on_delete=models.CASCADE,
         related_name="sessions"
     )
@@ -192,78 +193,4 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"Session for {self.user.email} - {self.session_key}"
-
-class Customer(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name='customer_profile')
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=20)
-    address = models.TextField()
-    ghana_card_id = models.CharField(max_length=50)
-    occupation = models.CharField(max_length=100)
-    gps_address = models.CharField(max_length=255)
-    locality = models.CharField(max_length=100)
-    town = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-    region = models.CharField(max_length=100)
-    country = models.CharField(max_length=100, default='Ghana')
-    join_date = models.DateField(default=timezone.now)
-    status = models.CharField(max_length=20, choices=[
-        ('active', 'Active'),
-        ('inactive', 'Inactive'),
-        ('suspended', 'Suspended'),
-    ], default='active')
-    total_bookings = models.IntegerField(default=0)
-    total_spent = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True)
-    average_rating = models.FloatField(
-        default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
-    preferred_vehicle_type = models.CharField(
-        max_length=50, blank=True, null=True)
-    notes = models.TextField(blank=True, null=True)
-    tags = models.JSONField(default=list, blank=True)
-    communication_preferences = models.JSONField(default=dict)
-    loyalty_tier = models.CharField(max_length=20, choices=[
-        ('bronze', 'Bronze'),
-        ('silver', 'Silver'),
-        ('gold', 'Gold'),
-        ('platinum', 'Platinum'),
-    ], default='bronze')
-
-    # Guarantor Information
-    guarantor_first_name = models.CharField(max_length=100)
-    guarantor_last_name = models.CharField(max_length=100)
-    guarantor_phone = models.CharField(max_length=20)
-    guarantor_email = models.EmailField(blank=True, null=True)
-    guarantor_ghana_card_id = models.CharField(max_length=50)
-    guarantor_occupation = models.CharField(max_length=100)
-    guarantor_gps_address = models.CharField(max_length=255)
-    guarantor_relationship = models.CharField(max_length=100)
-    guarantor_locality = models.CharField(max_length=100)
-    guarantor_town = models.CharField(max_length=100)
-    guarantor_city = models.CharField(max_length=100)
-    guarantor_region = models.CharField(max_length=100)
-    guarantor_country = models.CharField(max_length=100, default='Ghana')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'customers'
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-    @property
-    def full_name(self):
-        return f"{self.first_name} {self.last_name}"
-
-    def update_stats(self, booking_amount):
-        self.total_bookings += 1
-        self.total_spent += booking_amount
-        self.save()
 

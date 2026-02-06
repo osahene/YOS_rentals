@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../../lib/store/store";
-import { setSelectedCar } from "../../lib/store/slices/carsSlice";
+import { setSelectedCar, fetchCars } from "../../lib/store/slices/carsSlice";
 import { useRouter } from "next/navigation";
 import MetricsGrid from "@/app/components/homepage/MetricsGrid";
 import {
@@ -21,9 +21,14 @@ import {
 export default function CarsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { cars } = useSelector((state: RootState) => state.cars);
+  const { cars,  loading, error  } = useSelector((state: RootState) => state.cars);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
+
+    useEffect(() => {
+    dispatch(fetchCars());
+  }, [dispatch]);
+
 
   const filteredCars = cars.filter((car) => {
     const matchesSearch =
@@ -180,7 +185,7 @@ export default function CarsPage() {
                       Revenue
                     </p>
                     <p className="text-lg font-semibold text-gray-800 dark:text-white">
-                      ${car.totalRevenue.toLocaleString()}
+                      ¢{car.totalRevenue.toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
@@ -188,7 +193,7 @@ export default function CarsPage() {
                       Expenses
                     </p>
                     <p className="text-lg font-semibold text-gray-800 dark:text-white">
-                      ${car.totalExpenses.toLocaleString()}
+                      ¢{car.totalExpenses.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -205,7 +210,7 @@ export default function CarsPage() {
                     Net Profit
                   </p>
                   <p className={`text-xl font-bold ${getProfitColor(profit)}`}>
-                    ${Math.abs(profit).toLocaleString()}{" "}
+                    ¢{Math.abs(profit).toLocaleString()}{" "}
                     {profit >= 0 ? "Profit" : "Loss"}
                   </p>
                 </div>

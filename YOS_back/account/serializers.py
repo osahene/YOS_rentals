@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate, password_validation, get_user_model
 from django.core.validators import validate_email
-from .models import User
+from .models import User, ROLE_CHOICES
 
 
 
@@ -47,7 +47,6 @@ class RegistrationSerializer(serializers.Serializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User.objects.create_user(password=password, **validated_data)
-        user.save()
         return user
 
 
