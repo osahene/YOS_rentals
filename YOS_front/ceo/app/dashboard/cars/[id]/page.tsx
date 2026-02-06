@@ -46,40 +46,7 @@ export default function CarDetailPage() {
   ];
 
   const timelineEvents = [
-    {
-      date: "2023-01-15",
-      type: "registration",
-      title: "Car Registered",
-      description: "Vehicle added to fleet",
-    },
-    {
-      date: "2023-02-20",
-      type: "revenue",
-      title: "First Booking",
-      description: "First rental completed",
-      amount: 450,
-    },
-    {
-      date: "2023-03-15",
-      type: "maintenance",
-      title: "First Service",
-      description: "Regular maintenance",
-      amount: 300,
-    },
-    {
-      date: "2023-04-10",
-      type: "insurance",
-      title: "Insurance Renewal",
-      description: "Annual insurance renewed",
-      amount: 1200,
-    },
-    {
-      date: "2023-05-22",
-      type: "accident",
-      title: "Minor Accident",
-      description: "Rear bumper damage",
-      amount: 850,
-    },
+   
     {
       date: "2023-06-18",
       type: "revenue",
@@ -539,14 +506,14 @@ export default function CarDetailPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-400">
                   Daily Rate
                 </span>
                 <span className="font-medium text-gray-800 dark:text-white">
                   ${selectedCar.dailyRate}/day
                 </span>
-              </div>
+              </div> */}
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Status</span>
                 <span

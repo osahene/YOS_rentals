@@ -18,29 +18,15 @@ class InsurancePolicy(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     car = models.ForeignKey('cars.Car', on_delete=models.CASCADE, related_name='insurance_policies')
     policy_number = models.CharField(max_length=100, unique=True)
-    provider = models.CharField(max_length=200)
+    insurance_company = models.CharField(max_length=200)
     policy_type = models.CharField(max_length=50, choices=POLICY_TYPES)
-    
-    # Coverage details
-    coverage_amount = models.DecimalField(max_digits=12, decimal_places=2)
-    premium = models.DecimalField(max_digits=10, decimal_places=2)
-    deductible = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    
-    # Dates
+    insurance_amount = models.DecimalField(max_digits=12, decimal_places=2)
     start_date = models.DateField()
     end_date = models.DateField()
-    renewal_date = models.DateField(null=True, blank=True)
     
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     is_current = models.BooleanField(default=True)  # Only one current policy per car
-    
-    # Agent details
-    agent_name = models.CharField(max_length=200, blank=True)
-    agent_contact = models.CharField(max_length=100, blank=True)
-    
-    # Documents
-    documents = models.JSONField(default=list)  # Store document URLs
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -56,7 +42,7 @@ class InsurancePolicy(models.Model):
         verbose_name_plural = "Insurance Policies"
     
     def __str__(self):
-        return f"{self.provider} - {self.policy_number} ({self.car})"
+        return f"{self.insurance_company} - {self.policy_number} ({self.car})"
     
     def save(self, *args, **kwargs):
         # Ensure only one current policy per car

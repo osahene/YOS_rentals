@@ -8,8 +8,10 @@ from datetime import timedelta
 import json
 
 from .models import Car
-from .serializers import CarSerializer, CarDetailSerializer
+from .serializers import CarSerializer, CarDetailSerializer, CreateCarSerializer
 from .filters import CarFilter
+from events.models import Event
+from bookings.models import Booking
 
 class CarViewSet(viewsets.ModelViewSet):
     """
@@ -21,20 +23,27 @@ class CarViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = CarFilter
     search_fields = ['make', 'model', 'license_plate', 'vin']
-    ordering_fields = ['make', 'model', 'year', 'daily_rate', 'status']
+    ordering_fields = ['make', 'model', 'year', 'status']
     
     def get_serializer_class(self) -> type:
         if self.action == 'retrieve':
             return CarDetailSerializer
+        elif self.action == 'create':
+            return CreateCarSerializer
+        elif self.action in ['update', 'partial_update']:
+            # You might want a different serializer for updates
+            return CreateCarSerializer  # or create an UpdateCarSerializer
         return CarSerializer
     
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAdminUser()]
-        return [permissions.IsAuthenticated()]
+        # if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        #     return [permissions.IsAdminUser()]
+        # return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
     
     def perform_create(self, serializer):
-        serializer.save(registered_by=self.request.user)
+        # serializer.save(registered_by=self.request.user)
+        serializer.save()
     
     @action(detail=True, methods=['get'])
     def analytics(self, request, pk=None):
@@ -43,7 +52,6 @@ class CarViewSet(viewsets.ModelViewSet):
         
         # Calculate revenue for last 6 months
         six_months_ago = timezone.now() - timedelta(days=180)
-        from bookings.models import Booking
         
         revenue_data = []
         for i in range(6):
@@ -104,7 +112,6 @@ class CarViewSet(viewsets.ModelViewSet):
             )
         
         # Log the status change
-        from events.models import Event
         Event.objects.create(
             car=car,
             event_type='status_change',

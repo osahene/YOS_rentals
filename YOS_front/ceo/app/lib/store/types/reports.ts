@@ -12,7 +12,7 @@ export interface FinancialMetrics {
   profitMargin: number;
   roi: number; // Return on Investment
   utilizationRate: number;
-  averageDailyRate: number;
+  // averageDailyRate: number;
 }
 
 export interface ExpenseBreakdown {

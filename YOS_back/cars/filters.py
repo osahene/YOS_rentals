@@ -14,8 +14,6 @@ class CarFilter(filters.FilterSet):
     fuel_type = filters.ChoiceFilter(field_name='fuel_type', choices=Car.FUEL_TYPES)
     transmission = filters.ChoiceFilter(field_name='transmission', choices=Car.TRANSMISSION)
     status = filters.ChoiceFilter(field_name='status', choices=Car.CAR_STATUS)
-    daily_rate_min = filters.NumberFilter(field_name='daily_rate', lookup_expr='gte')
-    daily_rate_max = filters.NumberFilter(field_name='daily_rate', lookup_expr='lte')
     is_active = filters.BooleanFilter(field_name='is_active')
     
     class Meta:

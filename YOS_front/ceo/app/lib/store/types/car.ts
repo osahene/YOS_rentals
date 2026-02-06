@@ -44,12 +44,12 @@ export interface Car {
   year: number;
   color: string;
   registrationDate: string;
-  dailyRate?: number;
+  // dailyRate?: number;
   depreciationRate?: number;
   currentValue?: number;
   status: "available" | "rented" | "maintenance" | "retired";
   imageUrl: string;
-  rating: number;
+  // rating: number;
   totalRevenue: number;
   totalExpenses: number;
   purchasePrice?: number;

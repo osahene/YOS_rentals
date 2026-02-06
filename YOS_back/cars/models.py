@@ -48,7 +48,6 @@ class Car(models.Model):
     # Financial
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
     purchase_date = models.DateField()
-    daily_rate = models.DecimalField(max_digits=8, decimal_places=2)
     current_value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
     # Status
@@ -86,6 +85,11 @@ class Car(models.Model):
     @property
     def net_profit(self):
         return self.total_revenue - self.total_expenses
+    
+    @property
+    def registrationDate(self):
+        """Alias for purchase_date for frontend compatibility"""
+        return self.purchase_date
     
     def update_current_value(self):
         """Calculate current value based on depreciation"""

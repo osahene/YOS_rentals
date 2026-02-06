@@ -217,7 +217,7 @@ export default function CarsPage() {
 
                 {/* Rating and Status */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1">
+                  {/* <div className="flex items-center space-x-1">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
@@ -231,7 +231,7 @@ export default function CarsPage() {
                     <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
                       {car.rating.toFixed(1)}
                     </span>
-                  </div>
+                  </div> */}
                   <span
                     className={`
                     px-3 py-1 rounded-full text-sm font-medium

@@ -10,6 +10,10 @@ class BookingSerializer(serializers.ModelSerializer):
     car_details = CarSerializer(source='car', read_only=True)
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
     duration_days = serializers.IntegerField(read_only=True)
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
@@ -18,11 +22,16 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             'id', 'car', 'car_details', 'customer_name', 'start_date', 'end_date',
-            'duration_days', 'total_amount', 'amount_paid', 'status', 'status_display',
+            'duration_days', 'start_date', 'end_date', 'total_amount', 'amount_paid', 'status', 'status_display',
             'payment_method', 'payment_method_display', 'payment_status', 'payment_status_display',
             'created_at', 'is_self_drive'
         ]
         read_only_fields = ['created_at', 'updated_at']
+        
+    def get_customer_name(self, obj):
+        if obj.customer:
+            return f"{obj.customer.first_name} {obj.customer.last_name}"
+        return "Unknown"
 
 class BookingDetailSerializer(BookingSerializer):
     customer = CustomerSerializer(read_only=True)

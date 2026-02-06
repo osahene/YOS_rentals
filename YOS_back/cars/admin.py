@@ -10,7 +10,6 @@ class CarAdmin(admin.ModelAdmin):
         'model', 
         'year', 
         'status', 
-        'daily_rate', 
         'is_active',
         'registered_by'
     )
@@ -30,7 +29,7 @@ class CarAdmin(admin.ModelAdmin):
             'fields': ('fuel_type', 'transmission', 'seats', 'mileage', 'features', 'description')
         }),
         ('Financials', {
-            'fields': ('purchase_price', 'purchase_date', 'daily_rate', 'current_value')
+            'fields': ('purchase_price', 'purchase_date')
         }),
         ('Status & Media', {
             'fields': ('status', 'is_active', 'images', 'registered_by')

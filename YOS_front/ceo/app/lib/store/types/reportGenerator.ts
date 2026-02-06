@@ -73,11 +73,11 @@ export class ReportGenerator {
       totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
 
     // Calculate average daily rate
-    const totalDailyRate = cars.reduce(
-      (sum, car) => sum + (car.dailyRate ?? 0),
-      0
-    );
-    const averageDailyRate = cars.length > 0 ? totalDailyRate / cars.length : 0;
+    // const totalDailyRate = cars.reduce(
+    //   (sum, car) => sum + (car.dailyRate ?? 0),
+    //   0
+    // );
+    // const averageDailyRate = cars.length > 0 ? totalDailyRate / cars.length : 0;
 
     return {
       totalRevenue,
@@ -86,7 +86,7 @@ export class ReportGenerator {
       profitMargin,
       roi,
       utilizationRate,
-      averageDailyRate,
+      // averageDailyRate,
     };
   }
 

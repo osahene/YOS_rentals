@@ -30,6 +30,7 @@ export const fetchCars = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchCars();
+      console.log("Fetch Cars Response:", response);
       return response.data; // Adjust based on your actual API shape
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
