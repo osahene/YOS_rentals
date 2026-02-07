@@ -2,6 +2,8 @@ from django.db import models
 import uuid
 from account.models import User
 from decimal import Decimal
+from customers.models import Customer, Guarantor
+from cars.models import Car
 import math
 import datetime
 
@@ -33,9 +35,9 @@ class Booking(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     # Relationships
-    car = models.ForeignKey('cars.Car', on_delete=models.PROTECT, related_name='bookings')
-    customer = models.ForeignKey('customers.Customer', on_delete=models.PROTECT, related_name='bookings')
-    guarantor = models.ForeignKey('customers.Guarantor', on_delete=models.SET_NULL, null=True, blank=True)
+    car = models.ForeignKey(Car, on_delete=models.PROTECT, related_name='bookings')
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='bookings')
+    guarantor = models.ForeignKey(Guarantor, on_delete=models.SET_NULL, null=True, blank=True)
     driver = models.ForeignKey('staff.Staff', on_delete=models.SET_NULL, null=True, blank=True, 
                           limit_choices_to={'role': 'driver'},  # Optional: filter to drivers only
                           related_name='assigned_bookings')

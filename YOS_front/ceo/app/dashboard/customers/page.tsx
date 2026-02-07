@@ -1,6 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/lib/store/store";
+import {
+  fetchCustomers,
+  setSearchTerm,
+  setFilter,
+  selectFilteredCustomers,
+  selectCustomersFilters,
+  selectCustomersSearchTerm,
+  sendBulkMessage,
+} from "@/app/lib/store/slices/customersSlice";
 import {
   Users,
   Star,
@@ -15,74 +26,32 @@ import {
   Phone,
   Calendar,
   TrendingUp,
+  Eye,
 } from "lucide-react";
 import MetricsGrid from "@/app/components/homepage/MetricsGrid";
+import CustomerDetailModal from "./customerDetail/CustomerDetailModal";
 
 export default function CustomersPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("sms");
+  const [messageType, setMessageType] = useState<"sms" | "email">("sms");
+  const [detailCustomerId, setDetailCustomerId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  const customers = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+1 234 567 8900",
-      totalBookings: 12,
-      totalSpent: 4500,
-      lastBooking: "2023-10-15",
-      status: "active",
-      badge: "gold",
-    },
-    {
-      id: "2",
-      name: "Sarah Lee",
-      email: "sarah@example.com",
-      phone: "+1 234 567 8901",
-      totalBookings: 8,
-      totalSpent: 3200,
-      lastBooking: "2023-10-10",
-      status: "active",
-      badge: "silver",
-    },
-    {
-      id: "3",
-      name: "Mark Smith",
-      email: "mark@example.com",
-      phone: "+1 234 567 8902",
-      totalBookings: 15,
-      totalSpent: 5800,
-      lastBooking: "2023-10-18",
-      status: "active",
-      badge: "platinum",
-    },
-    {
-      id: "4",
-      name: "David Lee",
-      email: "david@example.com",
-      phone: "+1 234 567 8903",
-      totalBookings: 5,
-      totalSpent: 2100,
-      lastBooking: "2023-10-05",
-      status: "inactive",
-      badge: null,
-    },
-    {
-      id: "5",
-      name: "Emma Wilson",
-      email: "emma@example.com",
-      phone: "+1 234 567 8904",
-      totalBookings: 20,
-      totalSpent: 8200,
-      lastBooking: "2023-10-20",
-      status: "active",
-      badge: "diamond",
-    },
-  ];
+  // Get data from Redux
+  const { customers, loading, error } = useSelector((state: RootState) => state.customers);
+  const filteredCustomers = useSelector(selectFilteredCustomers);
+  const filters = useSelector(selectCustomersFilters);
+  const searchTerm = useSelector(selectCustomersSearchTerm);
 
-  const getBadgeIcon = (badge: string | null) => {
-    switch (badge) {
+  // Fetch customers on component mount
+  useEffect(() => {
+    dispatch(fetchCustomers(customers));
+  }, [dispatch]);
+
+  const getBadgeIcon = (tier: string) => {
+    switch (tier) {
       case "diamond":
         return <Crown className="w-5 h-5 text-purple-500" />;
       case "platinum":
@@ -91,16 +60,18 @@ export default function CustomersPage() {
         return <Trophy className="w-5 h-5 text-yellow-500" />;
       case "silver":
         return <Medal className="w-5 h-5 text-gray-400" />;
+      case "bronze":
+        return <Medal className="w-5 h-5 text-orange-700" />;
       default:
         return null;
     }
   };
 
   const handleSelectAll = () => {
-    if (selectedCustomers.length === customers.length) {
+    if (selectedCustomers.length === filteredCustomers.length) {
       setSelectedCustomers([]);
     } else {
-      setSelectedCustomers(customers.map((c) => c.id));
+      setSelectedCustomers(filteredCustomers.map((c) => c.id));
     }
   };
 
@@ -112,24 +83,30 @@ export default function CustomersPage() {
     }
   };
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  const handleSendMessage = async () => {
+    if (!message.trim()) {
+      alert("Please enter a message");
+      return;
+    }
 
-    const recipients =
-      selectedCustomers.length > 0
-        ? customers.filter((c) => selectedCustomers.includes(c.id))
-        : customers;
+    try {
+      await dispatch(sendBulkMessage({
+        customerIds: selectedCustomers,
+        message,
+        type: messageType,
+      })).unwrap();
 
-    console.log(
-      `Sending ${messageType} to:`,
-      recipients.map((r) => r.name)
-    );
-    console.log("Message:", message);
+      alert("Message sent successfully!");
+      setMessage("");
+      setSelectedCustomers([]);
+    } catch (error: any) {
+      alert(`Failed to send message: ${error}`);
+    }
+  };
 
-    // Reset form
-    setMessage("");
-    setSelectedCustomers([]);
-    alert("Message sent successfully!");
+  const handleViewDetails = (customerId: string) => {
+    setDetailCustomerId(customerId);
+    setIsDetailModalOpen(true);
   };
 
   const customerMetrics = [
@@ -142,21 +119,23 @@ export default function CustomersPage() {
     },
     {
       title: "Active Customers",
-      value: 198,
+      value: customers.filter(c => c.status === 'active').length,
       change: "+3%",
       icon: Users,
       color: "from-blue-500 to-indigo-500",
     },
     {
       title: "VIP Customers",
-      value: 24,
+      value: customers.filter(c => ['gold', 'platinum', 'diamond'].includes(c.loyalty_tier)).length,
       change: "+5%",
       icon: Star,
       color: "from-red-500 to-orange-500",
     },
     {
-      title: "Average Bookings",
-      value: 300,
+      title: "Avg. Bookings",
+      value: customers.length > 0 
+        ? (customers.reduce((sum, c) => sum + c.total_bookings, 0) / customers.length).toFixed(1)
+        : "0.0",
       change: "6%",
       icon: TrendingUp,
       color: "from-yellow-500 to-amber-500",
@@ -165,6 +144,18 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Customer Detail Modal */}
+      {detailCustomerId && (
+        <CustomerDetailModal
+          customerId={detailCustomerId}
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setDetailCustomerId(null);
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -177,6 +168,13 @@ export default function CustomersPage() {
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       {/* Stats */}
       <MetricsGrid metrics={customerMetrics} />
 
@@ -187,17 +185,36 @@ export default function CustomersPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search customers..."
+              placeholder="Search customers by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => dispatch(setSearchTerm(e.target.value))}
               className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
             />
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <select className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white">
+          <select
+            value={filters.status}
+            onChange={(e) => dispatch(setFilter({ status: e.target.value }))}
+            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
+          >
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="vip">VIP</option>
+            <option value="blocked">Blocked</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          <select
+            value={filters.loyalty_tier}
+            onChange={(e) => dispatch(setFilter({ loyalty_tier: e.target.value }))}
+            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
+          >
+            <option value="all">All Tiers</option>
+            <option value="bronze">Bronze</option>
+            <option value="silver">Silver</option>
+            <option value="gold">Gold</option>
+            <option value="platinum">Platinum</option>
+            <option value="diamond">Diamond</option>
           </select>
           <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
             <Filter className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -207,10 +224,16 @@ export default function CustomersPage() {
 
       {/* Customers Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
             Customer List
           </h3>
+          {loading && (
+            <div className="flex items-center text-blue-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              Loading...
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -221,7 +244,7 @@ export default function CustomersPage() {
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={selectedCustomers.length === customers.length}
+                      checked={selectedCustomers.length === filteredCustomers.length}
                       onChange={handleSelectAll}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
@@ -245,10 +268,13 @@ export default function CustomersPage() {
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
                   Status
                 </th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                  Detail
+                </th>
               </tr>
             </thead>
             <tbody>
-              {customers.map((customer) => (
+              {filteredCustomers.map((customer) => (
                 <tr
                   key={customer.id}
                   className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -264,25 +290,25 @@ export default function CustomersPage() {
                   <td className="py-3 px-4">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {customer.name.charAt(0)}
+                        {customer.first_name.charAt(0)}{customer.last_name.charAt(0)}
                       </div>
                       <div className="ml-3">
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-800 dark:text-white">
-                            {customer.name}
+                          <span className="font-medium text-gray-800 mr-2 dark:text-white">
+                            {customer.full_name}
                           </span>
-                          {customer.badge && (
+                          {customer.loyalty_tier && (
                             <div
                               className="ml-2"
-                              title={`${
-                                customer.badge.charAt(0).toUpperCase() +
-                                customer.badge.slice(1)
-                              } Tier`}
+                              title={`${customer.loyalty_tier_display} Tier`}
                             >
-                              {getBadgeIcon(customer.badge)}
+                              {getBadgeIcon(customer.loyalty_tier)}
                             </div>
                           )}
                         </div>
+                        <p className="text-sm text-gray-500">
+                          {customer.occupation || "No occupation"}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -302,38 +328,62 @@ export default function CustomersPage() {
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 text-gray-400 mr-2" />
                       <span className="font-medium">
-                        {customer.totalBookings}
+                        {customer.total_bookings}
                       </span>
-                      {customer.totalBookings >= 5 && (
+                      {customer.total_bookings >= 5 && (
                         <Star className="w-4 h-4 text-yellow-500 ml-2" />
                       )}
                     </div>
                   </td>
                   <td className="py-3 px-4 font-medium">
-                    ${customer.totalSpent.toLocaleString()}
+                    ¢{customer.total_spent.toLocaleString()}
                   </td>
                   <td className="py-3 px-4">
-                    {new Date(customer.lastBooking).toLocaleDateString()}
+                    {customer.last_booking
+                      ? new Date(customer.last_booking).toLocaleDateString()
+                      : "Never"}
                   </td>
                   <td className="py-3 px-4">
                     <span
                       className={`
-                      px-3 py-1 rounded-full text-sm font-medium
-                      ${
-                        customer.status === "active"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                      }
-                    `}
+                        px-3 py-1 rounded-full text-sm font-medium
+                        ${
+                          customer.status === "active"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        }
+                      `}
                     >
-                      {customer.status.charAt(0).toUpperCase() +
-                        customer.status.slice(1)}
+                      {customer.status_display}
                     </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <button
+                      onClick={() => handleViewDetails(customer.id)}
+                      className="flex items-center text-blue-600 hover:text-blue-800"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          
+          {filteredCustomers.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-2">
+                No customers found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {searchTerm || Object.values(filters).some(v => v !== 'all' && v !== 0)
+                  ? "Try adjusting your search or filters"
+                  : "No customers in the system yet"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

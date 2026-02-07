@@ -9,6 +9,7 @@ from cars.serializers import CarSerializer
 class BookingSerializer(serializers.ModelSerializer):
     car_details = CarSerializer(source='car', read_only=True)
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    guarantor_name = serializers.SerializerMethodField()
     duration_days = serializers.IntegerField(read_only=True)
     start_date = serializers.DateField()
     end_date = serializers.DateField()
@@ -21,17 +22,23 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'car', 'car_details', 'customer_name', 'start_date', 'end_date',
-            'duration_days', 'start_date', 'end_date', 'total_amount', 'amount_paid', 'status', 'status_display',
-            'payment_method', 'payment_method_display', 'payment_status', 'payment_status_display',
-            'created_at', 'is_self_drive'
+            'id', 'car', 'car_details', 'customer', 'customer_name', 
+            'start_date', 'end_date', 'duration_days', 'total_amount', 
+            'amount_paid', 'status', 'status_display', 'payment_method',
+            'payment_method_display', 'payment_status', 'payment_status_display',
+            'created_at', 'is_self_drive', 'guarantor', 'guarantor_name'
         ]
         read_only_fields = ['created_at', 'updated_at']
         
     def get_customer_name(self, obj):
         if obj.customer:
             return f"{obj.customer.first_name} {obj.customer.last_name}"
-        return "Unknown"
+        return "Unknown Customer"
+    
+    def get_guarantor_name(self, obj):
+        if obj.guarantor:
+            return f"{obj.guarantor.first_name} {obj.guarantor.last_name}"
+        return "No guarantor"
 
 class BookingDetailSerializer(BookingSerializer):
     customer = CustomerSerializer(read_only=True)

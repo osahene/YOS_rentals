@@ -1,16 +1,17 @@
-from rest_framework import viewsets, permissions, filters, status
+from rest_framework import viewsets, permissions, filters as filtre, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Sum, Count, Avg
+from django.db.models import Sum, Prefetch
 from django.utils import timezone
 from datetime import timedelta
 import json
 
+from insurance.models import InsurancePolicy
 from .models import Car
 from .serializers import CarSerializer, CarDetailSerializer, CreateCarSerializer
 from .filters import CarFilter
-from events.models import Event
+from events.models import Event, MaintenanceRecord
 from bookings.models import Booking
 
 class CarViewSet(viewsets.ModelViewSet):
@@ -20,7 +21,7 @@ class CarViewSet(viewsets.ModelViewSet):
     Transport Manager: Read-only, can update status
     """
     queryset = Car.objects.all()
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filtre.SearchFilter, filtre.OrderingFilter]
     filterset_class = CarFilter
     search_fields = ['make', 'model', 'license_plate', 'vin']
     ordering_fields = ['make', 'model', 'year', 'status']
@@ -35,6 +36,23 @@ class CarViewSet(viewsets.ModelViewSet):
             return CreateCarSerializer  # or create an UpdateCarSerializer
         return CarSerializer
     
+    def get_queryset(self):
+        """
+        Optimize queries based on the action.
+        For list: return basic queryset
+        For retrieve: prefetch all related data
+        """
+        if self.action == 'retrieve':
+            # Prefetch all related data for detail view
+            return Car.objects.prefetch_related(
+                Prefetch('insurance_policies', queryset=InsurancePolicy.objects.all().order_by('-start_date')),
+                Prefetch('maintenance_records', queryset=MaintenanceRecord.objects.all().order_by('-start_date')),
+                Prefetch('bookings', queryset=Booking.objects.all().order_by('-created_at')),
+                Prefetch('events', queryset=Event.objects.all().order_by('-created_at'))
+            ).all()
+        return Car.objects.all()
+    
+    
     def get_permissions(self):
         # if self.action in ['create', 'update', 'partial_update', 'destroy']:
         #     return [permissions.IsAdminUser()]
@@ -45,53 +63,70 @@ class CarViewSet(viewsets.ModelViewSet):
         # serializer.save(registered_by=self.request.user)
         serializer.save()
     
-    @action(detail=True, methods=['get'])
     def analytics(self, request, pk=None):
-        """Get analytics for a specific car"""
+        """Get detailed analytics for a specific car"""
         car = self.get_object()
         
-        # Calculate revenue for last 6 months
+        # Use the same analytics data from serializer
+        serializer = CarDetailSerializer(car, context={'request': request})
+        analytics_data = serializer.get_analytics_data(car)
+        
+        # Add additional analytics if needed
+        from datetime import datetime, timedelta
+        
+        # Get booking trends for the last 6 months
         six_months_ago = timezone.now() - timedelta(days=180)
         
-        revenue_data = []
+        booking_trends = []
         for i in range(6):
-            month = six_months_ago + timedelta(days=30*i)
+            month = six_months_ago + timedelta(days=30 * i)
+            month_start = month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            
             month_bookings = Booking.objects.filter(
                 car=car,
-                status='completed',
-                created_at__month=month.month,
-                created_at__year=month.year
+                created_at__range=[month_start, month_end]
             )
-            revenue = month_bookings.aggregate(total=Sum('total_amount'))['total'] or 0
-            revenue_data.append({
-                'month': month.strftime('%b %Y'),
-                'revenue': float(revenue)
+            
+            completed = month_bookings.filter(status='completed').count()
+            cancelled = month_bookings.filter(status='cancelled').count()
+            active = month_bookings.filter(status='active').count()
+            
+            booking_trends.append({
+                'month': month_start.strftime('%b %Y'),
+                'completed': completed,
+                'cancelled': cancelled,
+                'active': active,
+                'total': month_bookings.count()
             })
         
-        # Get maintenance costs
-        maintenance_cost = car.maintenance_records.aggregate(
-            total=Sum('cost')
-        )['total'] or 0
-        
-        # Get insurance cost
-        insurance_cost = car.insurance_policies.filter(
-            is_current=True
-        ).aggregate(total=Sum('insurance_amount'))['total'] or 0
-        
-        # Get booking statistics
-        booking_stats = {
-            'total': car.bookings.count(),
-            'completed': car.bookings.filter(status='completed').count(),
-            'active': car.bookings.filter(status='active').count(),
-            'cancelled': car.bookings.filter(status='cancelled').count(),
+        # Get revenue by booking status
+        revenue_by_status = {
+            'completed': float(Booking.objects.filter(
+                car=car, status='completed'
+            ).aggregate(total=Sum('total_amount'))['total'] or 0),
+            'active': float(Booking.objects.filter(
+                car=car, status='active'
+            ).aggregate(total=Sum('total_amount'))['total'] or 0),
+            'cancelled': float(Booking.objects.filter(
+                car=car, status='cancelled'
+            ).aggregate(total=Sum('total_amount'))['total'] or 0),
         }
+        
+        # Get maintenance cost breakdown
+        maintenance_by_type = MaintenanceRecord.objects.filter(
+            car=car
+        ).values('type').annotate(
+            total_cost=Sum('cost'),
+            count=Count('id')
+        ).order_by('-total_cost')
         
         data = {
             'car': CarDetailSerializer(car).data,
-            'revenue_trend': revenue_data,
-            'maintenance_cost': float(maintenance_cost),
-            'insurance_cost': float(insurance_cost),
-            'booking_stats': booking_stats,
+            'analytics': analytics_data,
+            'booking_trends': booking_trends,
+            'revenue_by_status': revenue_by_status,
+            'maintenance_breakdown': list(maintenance_by_type),
             'utilization_rate': self.calculate_utilization_rate(car),
             'profit_margin': self.calculate_profit_margin(car),
         }
@@ -128,7 +163,7 @@ class CarViewSet(viewsets.ModelViewSet):
         car.status = new_status
         car.save()
         
-        return Response({'status': 'updated'})
+        return Response({'status': 'updated', 'car': CarSerializer(car).data})
     
     def calculate_utilization_rate(self, car):
         """Calculate car utilization rate"""

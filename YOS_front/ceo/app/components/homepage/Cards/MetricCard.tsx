@@ -7,7 +7,7 @@ import { IconType } from "react-icons";
 
 export interface MetricCardProps {
   title: string;
-  value: number;
+  value: number | string;
   change: string;
   icon: IconType;
   color: string;

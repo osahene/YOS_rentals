@@ -45,11 +45,6 @@ class Customer(models.Model):
     address_region = models.CharField(max_length=100, blank=True)
     address_country = models.CharField(max_length=100, default='Ghana')
     
-    # Stats
-    total_bookings = models.IntegerField(default=0)
-    total_spent = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    average_rating = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
-    
     # Preferences
     preferred_vehicle_type = models.CharField(max_length=100, blank=True)
     communication_preferences = models.JSONField(default=dict)  # {email: true, sms: true, phone: false}
@@ -73,6 +68,59 @@ class Customer(models.Model):
     
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.phone}"
+    
+      
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def total_bookings(self):
+        """Get total number of bookings for this customer"""
+        from bookings.models import Booking
+        return Booking.objects.filter(customer=self).count()
+    
+    @property
+    def total_spent(self):
+        """Get total amount spent by this customer"""
+        from bookings.models import Booking
+        from decimal import Decimal
+        return Booking.objects.filter(
+            customer=self,
+            status__in=['completed', 'active'],
+            payment_status__in=['paid', 'partially_paid']
+        ).aggregate(
+            total=models.Sum('total_amount')
+        )['total'] or Decimal('0')
+    
+    @property
+    def last_booking(self):
+        """Get the last booking date"""
+        from bookings.models import Booking
+        last_booking = Booking.objects.filter(customer=self).order_by('-created_at').first()
+        return last_booking.created_at if last_booking else None
+    
+    @property
+    def active_bookings(self):
+        """Get active bookings count"""
+        from bookings.models import Booking
+        return Booking.objects.filter(customer=self, status='active').count()
+    
+    @property
+    def completed_bookings(self):
+        """Get completed bookings count"""
+        from bookings.models import Booking
+        return Booking.objects.filter(customer=self, status='completed').count()
+    
+    def update_last_booking_date(self):
+        """Update last booking date based on most recent booking"""
+        from bookings.models import Booking
+        last_booking = Booking.objects.filter(customer=self).order_by('-created_at').first()
+        if last_booking:
+            self.last_booking_date = last_booking.created_at
+            self.save(update_fields=['last_booking_date'])
+        return self.last_booking_date
 
 class Guarantor(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -103,3 +151,7 @@ class Guarantor(models.Model):
     
     def __str__(self):
         return f"Guarantor for {self.customer}"
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"

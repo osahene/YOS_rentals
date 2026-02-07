@@ -8,7 +8,7 @@ urlpatterns = [
     path("account/", include("account.urls")),
     path("cars/", include("cars.urls")),
     # path("bookings/", include("bookings.urls")),
-    # path("customers/", include("customers.urls")),
+    path("customers/", include("customers.urls")),
     # path("reports/", include("reports.urls")),
     # path("staff/", include("staff.urls")),
 ]

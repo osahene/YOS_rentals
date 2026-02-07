@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "../../lib/store/store";
-import { setSelectedCar, fetchCars } from "../../lib/store/slices/carsSlice";
+import { fetchCars } from "../../lib/store/slices/carsSlice";
 import { useRouter } from "next/navigation";
 import MetricsGrid from "@/app/components/homepage/MetricsGrid";
 import {
@@ -42,7 +42,6 @@ export default function CarsPage() {
   });
 
   const handleCarClick = (car: (typeof cars)[0]) => {
-    dispatch(setSelectedCar(car));
     router.push(`/dashboard/cars/${car.id}`);
   };
 

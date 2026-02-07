@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
             model_name="insurancerenewal",
             name="new_insurance_amount",
             field=models.DecimalField(
-                decimal_places=2, default=django.utils.timezone.now, max_digits=12
+                decimal_places=2, default=1.0, max_digits=12
             ),
             preserve_default=False,
         ),

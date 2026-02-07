@@ -23,6 +23,16 @@ const apiService = {
   updateCar: (id: string, data: any) => $axios.put(`/cars/${id}/`, data),
   deleteCar: (id: string) => $axios.delete(`/cars/${id}/`),
   updateCarStatus: (id: string, status: string) => $axios.put(`/cars/${id}/update-status/`, { status }),
+
+  // Customers API
+  fetchCustomers: (params?: any) => $axios.get("/customers/", { params }),
+  fetchCustomerById: (id: string) => $axios.get(`/customers/${id}/`),
+  updateCustomer: (id: string, data: any) => $axios.put(`/customers/${id}/`, data),
+  deleteCustomer: (id: string) => $axios.delete(`/customers/${id}/`),
+  fetchCustomerBookings: (id: string) => $axios.get(`/customers/${id}/bookings/`),
+  addGuarantor: (customerId: string, data: any) => $axios.post(`/customers/${customerId}/add_guarantor/`, data),
+  fetchCustomerAnalytics: () => $axios.get("/customers/analytics/"),
+  sendBulkMessage: (data: any) => $axios.post("/customers/send_bulk_message/", data),
   
 };
 
