@@ -6,8 +6,8 @@ export interface FinancialReportFilters {
 }
 
 export interface FinancialMetrics {
-  totalRevenue: number;
-  totalExpenses: number;
+  total_revenue: number;
+  total_expenses: number;
   netProfit: number;
   profitMargin: number;
   roi: number; // Return on Investment

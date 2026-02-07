@@ -80,7 +80,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     policy_number=policy_data['policy_number'],
                     car=event.car
                 )
-                for field in ['end_date', 'premium', 'status']:
+                for field in ['end_date', 'insurance_amount', 'status']:
                     if field in policy_data:
                         setattr(policy, field, policy_data[field])
                 policy.save()
@@ -92,7 +92,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     provider=policy_data.get('provider', ''),
                     policy_type=policy_data.get('policy_type', 'comprehensive'),
                     coverage_amount=policy_data.get('coverage_amount', 0),
-                    premium=policy_data.get('premium', 0),
+                    insurance_amount=policy_data.get('insurance_amount', 0),
                     start_date=policy_data.get('start_date', event.date),
                     end_date=policy_data.get('end_date'),
                     is_current=True,

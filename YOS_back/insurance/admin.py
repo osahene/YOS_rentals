@@ -6,7 +6,7 @@ class InsuranceRenewalInline(admin.TabularInline):
     model = InsuranceRenewal
     extra = 0
     readonly_fields = ('renewed_at', 'renewed_by')
-    fields = ('previous_end_date', 'new_end_date', 'new_premium', 'renewed_at', 'renewed_by')
+    fields = ('previous_end_date', 'new_end_date', 'new_insurance_amount', 'renewed_at', 'renewed_by')
     can_delete = False
 
 @admin.register(InsurancePolicy)
@@ -51,7 +51,7 @@ class InsurancePolicyAdmin(admin.ModelAdmin):
     
 @admin.register(InsuranceRenewal)
 class InsuranceRenewalAdmin(admin.ModelAdmin):
-    list_display = ('policy', 'previous_end_date', 'new_end_date', 'new_premium', 'renewed_at')
+    list_display = ('policy', 'previous_end_date', 'new_end_date', 'new_insurance_amount', 'renewed_at')
     list_filter = ('renewed_at',)
     search_fields = ('policy__policy_number', 'policy__car__license_plate')
     readonly_fields = ('renewed_at',)

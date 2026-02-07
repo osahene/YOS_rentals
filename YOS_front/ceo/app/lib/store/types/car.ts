@@ -23,7 +23,7 @@ export interface InsurancePolicy {
   policyNumber: string;
   startDate: string;
   endDate: string;
-  premium: number;
+  insurance_amount: number;
   status: "active" | "expired" | "pending";
 }
 
@@ -50,8 +50,8 @@ export interface Car {
   status: "available" | "rented" | "maintenance" | "retired";
   imageUrl: string;
   // rating: number;
-  totalRevenue: number;
-  totalExpenses: number;
+  total_revenue: number;
+  total_expenses: number;
   purchasePrice?: number;
   timelineEvents: TimelineEvent[];
   maintenanceRecords: MaintenanceRecord[];

@@ -397,7 +397,7 @@ export default function CarDetailPage() {
                             Premium
                           </span>
                           <span className="font-medium">
-                            ${policy.premium}/year
+                            ${policy.insurance_amount}/year
                           </span>
                         </div>
                       </div>
@@ -577,7 +577,7 @@ export default function CarDetailPage() {
                   </span>
                 </div>
                 <span className="font-bold text-green-600">
-                  ${selectedCar.totalRevenue.toLocaleString()}
+                  ${selectedCar.total_revenue.toLocaleString()}
                 </span>
               </div>
 
@@ -589,7 +589,7 @@ export default function CarDetailPage() {
                   </span>
                 </div>
                 <span className="font-bold text-yellow-600">
-                  ${selectedCar.totalExpenses.toLocaleString()}
+                  ${selectedCar.total_expenses.toLocaleString()}
                 </span>
               </div>
 
@@ -600,16 +600,16 @@ export default function CarDetailPage() {
                   </span>
                   <span
                     className={`font-bold ${
-                      selectedCar.totalRevenue - selectedCar.totalExpenses >= 0
+                      selectedCar.total_revenue - selectedCar.total_expenses >= 0
                         ? "text-green-600"
                         : "text-red-600"
                     }`}
                   >
                     $
                     {Math.abs(
-                      selectedCar.totalRevenue - selectedCar.totalExpenses
+                      selectedCar.total_revenue - selectedCar.total_expenses
                     ).toLocaleString()}
-                    {selectedCar.totalRevenue - selectedCar.totalExpenses >= 0
+                    {selectedCar.total_revenue - selectedCar.total_expenses >= 0
                       ? " Profit"
                       : " Loss"}
                   </span>

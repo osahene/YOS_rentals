@@ -30,7 +30,7 @@ def calculate_car_expenses(car_id):
     insurance_cost = InsurancePolicy.objects.filter(
         car_id=car_id,
         is_current=True
-    ).aggregate(total=Sum('premium'))['total'] or Decimal('0')
+    ).aggregate(total=Sum('insurance_amount'))['total'] or Decimal('0')
     
     return maintenance_cost + insurance_cost
 

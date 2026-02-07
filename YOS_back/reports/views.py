@@ -67,7 +67,7 @@ class FinancialReportAPI(APIView):
             car__in=cars,
             is_current=True,
             created_at__date__range=[start_date, end_date]
-        ).aggregate(total=Sum('premium'))['total'] or Decimal('0')
+        ).aggregate(total=Sum('insurance_amount'))['total'] or Decimal('0')
         
         salary_cost = SalaryPayment.objects.filter(
             month__range=[start_date, end_date],

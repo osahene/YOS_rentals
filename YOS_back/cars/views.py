@@ -76,7 +76,7 @@ class CarViewSet(viewsets.ModelViewSet):
         # Get insurance cost
         insurance_cost = car.insurance_policies.filter(
             is_current=True
-        ).aggregate(total=Sum('premium'))['total'] or 0
+        ).aggregate(total=Sum('insurance_amount'))['total'] or 0
         
         # Get booking statistics
         booking_stats = {

@@ -46,8 +46,8 @@ export class ReportGenerator {
 
   // Calculate key financial metrics
   private calculateFinancialMetrics(cars: Car[]): FinancialMetrics {
-    const totalRevenue = cars.reduce((sum, car) => sum + car.totalRevenue, 0);
-    const totalExpenses = cars.reduce((sum, car) => sum + car.totalExpenses, 0);
+    const totalRevenue = cars.reduce((sum, car) => sum + car.total_revenue, 0);
+    const totalExpenses = cars.reduce((sum, car) => sum + car.total_expenses, 0);
     const netProfit = totalRevenue - totalExpenses;
     const profitMargin =
       totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
@@ -80,8 +80,8 @@ export class ReportGenerator {
     // const averageDailyRate = cars.length > 0 ? totalDailyRate / cars.length : 0;
 
     return {
-      totalRevenue,
-      totalExpenses,
+      total_revenue: totalRevenue,
+      total_expenses: totalExpenses,
       netProfit,
       profitMargin,
       roi,
@@ -94,7 +94,7 @@ export class ReportGenerator {
   private generateIncomeStatement(
     cars: Car[]
   ): FinancialStatement["incomeStatement"] {
-    const rentalIncome = cars.reduce((sum, car) => sum + car.totalRevenue, 0);
+    const rentalIncome = cars.reduce((sum, car) => sum + car.total_revenue, 0);
 
     // Calculate other income from timeline events
     const otherIncome = cars.reduce(
@@ -153,7 +153,7 @@ export class ReportGenerator {
 
       // Insurance expenses (annual premiums)
       insurance += car.insurancePolicies.reduce(
-        (sum, policy) => sum + policy.premium,
+        (sum, policy) => sum + policy.insurance_amount,
         0
       );
 
@@ -221,9 +221,9 @@ export class ReportGenerator {
       vehicleId: car.id,
       make: car.make,
       model: car.model,
-      revenue: car.totalRevenue,
-      expenses: car.totalExpenses,
-      profit: car.totalRevenue - car.totalExpenses,
+      revenue: car.total_revenue,
+      expenses: car.total_expenses,
+      profit: car.total_revenue - car.total_expenses,
     }));
 
     const expenseBreakdown = this.calculateExpenseBreakdown(cars);
@@ -355,7 +355,7 @@ export class ReportGenerator {
           const endDate = new Date(policy.endDate);
           return startDate <= date && endDate >= date;
         })
-        .reduce((sum, policy) => sum + policy.premium / 12, 0); // Monthly allocation
+        .reduce((sum, policy) => sum + policy.insurance_amount / 12, 0); // Monthly allocation
 
       // Other expenses in this month
       car.timelineEvents.forEach((event) => {

@@ -57,18 +57,18 @@ class InsurancePolicy(models.Model):
         from django.utils import timezone
         return timezone.now().date() > self.end_date
     
-    def renew_policy(self, new_end_date, new_premium=None):
+    def renew_policy(self, new_end_date, new_insurance_amount=None):
         """Create a renewal record"""
         renewal = InsuranceRenewal.objects.create(
             policy=self,
             previous_end_date=self.end_date,
             new_end_date=new_end_date,
-            new_premium=new_premium or self.premium,
+            new_insurance_amount=new_insurance_amount or self.insurance_amount,
             renewed_by=self.created_by
         )
         self.end_date = new_end_date
-        if new_premium:
-            self.premium = new_premium
+        if new_insurance_amount:
+            self.insurance_amount = new_insurance_amount
         self.save()
         return renewal
 
@@ -77,7 +77,7 @@ class InsuranceRenewal(models.Model):
     policy = models.ForeignKey(InsurancePolicy, on_delete=models.CASCADE, related_name='renewals')
     previous_end_date = models.DateField()
     new_end_date = models.DateField()
-    new_premium = models.DecimalField(max_digits=10, decimal_places=2)
+    new_insurance_amount = models.DecimalField(max_digits=12, decimal_places=2)
     renewed_at = models.DateTimeField(auto_now_add=True)
     renewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     

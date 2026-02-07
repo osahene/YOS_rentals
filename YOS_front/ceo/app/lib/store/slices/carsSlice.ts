@@ -124,6 +124,7 @@ export const carsSlice = createSlice({
   initialState,
   reducers: {
     setSelectedCar: (state, action: PayloadAction<Car | null>) => {
+      console.log("Setting selected car:", action);
       state.selectedCar = action.payload;
     },
     clearError: (state) => {
@@ -138,7 +139,7 @@ export const carsSlice = createSlice({
     });
     builder.addCase(fetchCars.fulfilled, (state, action) => {
       state.loading = false;
-      state.cars = action.payload;
+      state.cars = action.payload.results || [];
     });
     builder.addCase(fetchCars.rejected, (state, action) => {
       state.loading = false;

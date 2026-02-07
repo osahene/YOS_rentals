@@ -21,11 +21,11 @@ import {
 export default function CarsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { cars,  loading, error  } = useSelector((state: RootState) => state.cars);
+  const { cars, loading, error } = useSelector((state: RootState) => state.cars);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
 
-    useEffect(() => {
+  useEffect(() => {
     dispatch(fetchCars());
   }, [dispatch]);
 
@@ -53,8 +53,8 @@ export default function CarsPage() {
   };
 
   // Calculate totals
-  const totalRevenue = cars.reduce((sum, car) => sum + car.totalRevenue, 0);
-  const totalExpenses = cars.reduce((sum, car) => sum + car.totalExpenses, 0);
+  const totalRevenue = cars.reduce((sum, car) => sum + car.total_revenue, 0);
+  const totalExpenses = cars.reduce((sum, car) => sum + car.total_expenses, 0);
   const maintenanceCount = cars.filter(
     (car) => car.status === "maintenance"
   ).length;
@@ -69,14 +69,14 @@ export default function CarsPage() {
     },
     {
       title: "Total Revenue",
-      value: totalRevenue.toLocaleString(),
+      value: totalRevenue,
       change: "+1.5%",
       icon: TrendingUp,
       color: "from-blue-500 to-indigo-500",
     },
     {
       title: "Total Expenses",
-      value: totalExpenses.toLocaleString(),
+      value: totalExpenses,
       change: "+3%",
       icon: ReceiptCent,
       color: "from-red-500 to-orange-500",
@@ -148,7 +148,7 @@ export default function CarsPage() {
       {/* Cars Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCars.map((car) => {
-          const profit = car.totalRevenue - car.totalExpenses;
+          const profit = car.total_revenue - car.total_expenses;
           const backgroundColor = car.color || "#3B82F6";
 
           return (
@@ -158,8 +158,16 @@ export default function CarsPage() {
               className="group relative bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden cursor-pointer transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
               {/* Car Color Background */}
-              <div className="h-32 w-full" style={{ backgroundColor }}>
-                <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
+              <div className="h-32 w-full relative overflow-hidden" style={{ backgroundColor }}>
+                {car.images && car.images.length > 0 ? (
+                  <img
+                    src={car.images[0]} // Using the first image URL from your Django /media/
+                    alt={`${car.make} ${car.model}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
+                )}
               </div>
 
               {/* Car Info */}
@@ -185,7 +193,7 @@ export default function CarsPage() {
                       Revenue
                     </p>
                     <p className="text-lg font-semibold text-gray-800 dark:text-white">
-                      ¢{car.totalRevenue.toLocaleString()}
+                      ¢{car.total_revenue.toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
@@ -193,18 +201,17 @@ export default function CarsPage() {
                       Expenses
                     </p>
                     <p className="text-lg font-semibold text-gray-800 dark:text-white">
-                      ¢{car.totalExpenses.toLocaleString()}
+                      ¢{car.total_expenses.toLocaleString()}
                     </p>
                   </div>
                 </div>
 
                 {/* Profit */}
                 <div
-                  className={`text-center p-3 rounded-lg mb-4 ${
-                    profit >= 0
+                  className={`text-center p-3 rounded-lg mb-4 ${profit >= 0
                       ? "bg-green-50 dark:bg-green-900/20"
                       : "bg-red-50 dark:bg-red-900/20"
-                  }`}
+                    }`}
                 >
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Net Profit
@@ -235,26 +242,22 @@ export default function CarsPage() {
                   <span
                     className={`
                     px-3 py-1 rounded-full text-sm font-medium
-                    ${
-                      car.status === "available"
+                    ${car.status === "available"
                         ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                         : ""
-                    }
-                    ${
-                      car.status === "rented"
+                      }
+                    ${car.status === "rented"
                         ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                         : ""
-                    }
-                    ${
-                      car.status === "maintenance"
+                      }
+                    ${car.status === "maintenance"
                         ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                         : ""
-                    }
-                    ${
-                      car.status === "retired"
+                      }
+                    ${car.status === "retired"
                         ? "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
                         : ""
-                    }
+                      }
                   `}
                   >
                     {car.status.charAt(0).toUpperCase() + car.status.slice(1)}

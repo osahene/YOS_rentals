@@ -148,11 +148,11 @@ export default function ReportPage() {
       ["Financial Summary", ""],
       [
         "Total Revenue",
-        `$${financialStatement.summary.totalRevenue.toLocaleString()}`,
+        `$${financialStatement.summary.total_revenue.toLocaleString()}`,
       ],
       [
         "Total Expenses",
-        `$${financialStatement.summary.totalExpenses.toLocaleString()}`,
+        `$${financialStatement.summary.total_expenses.toLocaleString()}`,
       ],
       [
         "Net Profit",
@@ -573,7 +573,7 @@ export default function ReportPage() {
                     Total Revenue
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${financialStatement.summary.totalRevenue.toLocaleString()}
+                    ${financialStatement.summary.total_revenue.toLocaleString()}
                   </p>
                 </div>
                 <FaMoneyBillWave className="w-8 h-8 text-blue-500" />
