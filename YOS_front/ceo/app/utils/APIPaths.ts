@@ -16,6 +16,36 @@ const apiService = {
   // Generate OTP
   generateRegister: (data: any) =>
     $axios.post("/account/user-register-generate-otp/", data),
+
+  // dashboard
+   fetchDashboardData: () => Promise.all([
+    $axios.get("/dashboard/metrics/"),
+    $axios.get("/dashboard/recent-bookings/"),
+    $axios.get("/dashboard/daily-bookings/"),
+    $axios.get("/dashboard/revenue-trends/"),
+    $axios.get("/dashboard/car-distribution/"),
+    $axios.get("/dashboard/top-cars/"),
+  ]).then(([
+    metricsRes,
+    recentBookingsRes,
+    dailyBookingsRes,
+    revenueTrendsRes,
+    carDistributionRes,
+    topCarsRes
+  ]) => ({
+    metrics: metricsRes.data.metrics,
+    bookingStatus: metricsRes.data.booking_status,
+    carStatus: metricsRes.data.car_status,
+    recentBookings: recentBookingsRes.data.bookings,
+    dailyBookings: dailyBookingsRes.data.daily_data,
+    trends: revenueTrendsRes.data.trends,
+    carDistribution: carDistributionRes.data.distribution,
+    topCars: topCarsRes.data.top_cars,
+  })),
+
+
+
+
   // Register Cars
   createCar: (data: any) => $axios.post("/cars/", data),
   fetchCars: () => $axios.get("/cars/"),

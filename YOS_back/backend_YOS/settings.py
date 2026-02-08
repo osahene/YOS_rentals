@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     "staff",
     "customers",
     "reports",
-    # "finances",
+    "dashboard",
 ]
 
 SITE_ID = 1
