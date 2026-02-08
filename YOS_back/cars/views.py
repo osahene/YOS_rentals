@@ -36,7 +36,7 @@ class CarViewSet(viewsets.ModelViewSet):
             return CreateCarSerializer  # or create an UpdateCarSerializer
         return CarSerializer
     
-    def get_queryset(self):
+    def get_queryset(self): #type: ignore
         """
         Optimize queries based on the action.
         For list: return basic queryset

@@ -2,7 +2,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Exists, OuterRef
+from django.db.models import Q, Sum, Count
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -23,17 +24,18 @@ class BookingViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = BookingFilter
     
-    # def get_serializer_class(self) -> Type[serializers.Serializer]:
-    #     if self.action == 'create':
-    #         return CreateBookingSerializer
-    #     elif self.action == 'retrieve':
-    #         return BookingDetailSerializer
-    #     return BookingSerializer
+    def get_serializer_class(self): #type: ignore
+        if self.action == 'create':
+            return CreateBookingSerializer
+        elif self.action == 'retrieve':
+            return BookingDetailSerializer
+        return BookingSerializer
     
     def get_permissions(self):
-        if self.request.method in permissions.SAFE_METHODS:
-            return [permissions.IsAuthenticated()]
-        return [permissions.IsAdminUser()]  # Only admin can create/update bookings
+        # if self.request.method in permissions.SAFE_METHODS:
+        #     return [permissions.IsAuthenticated()]
+        # return [permissions.IsAdminUser()] 
+        return [permissions.AllowAny()]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -239,3 +241,120 @@ class BookingViewSet(viewsets.ModelViewSet):
             'payment_method': booking.get_payment_method_display(),
             'payment_status': booking.get_payment_status_display(),
         }
+        
+        
+        # ceo dashboard retrieval
+    @action(detail=False, methods=['get'])
+    def dashboard_metrics(self, request):
+        """Get dashboard metrics (total bookings, active, revenue, etc.)"""
+        # Get date range filter
+        days_ago = request.query_params.get('days', 30)
+        try:
+            days = int(days_ago)
+        except:
+            days = 30
+        
+        start_date = timezone.now() - timedelta(days=days)
+        
+        # Calculate metrics
+        total_bookings = Booking.objects.filter(
+            created_at__gte=start_date
+        ).count()
+        
+        active_bookings = Booking.objects.filter(
+            status='active',
+            start_date__lte=timezone.now().date(),
+            end_date__gte=timezone.now().date()
+        ).count()
+        
+        revenue = Booking.objects.filter(
+            created_at__gte=start_date,
+            payment_status='paid'
+        ).aggregate(total=Sum('total_amount'))['total'] or 0
+        
+        cancelled = Booking.objects.filter(
+            created_at__gte=start_date,
+            status='cancelled'
+        ).count()
+        
+        return Response({
+            'total_bookings': total_bookings,
+            'active_bookings': active_bookings,
+            'revenue': float(revenue),
+            'cancelled': cancelled
+        })
+    
+    @action(detail=False, methods=['get'])
+    def booking_trends(self, request):
+        """Get booking trends data for charts"""
+        # Get date range (default: last 8 months)
+        months = request.query_params.get('months', 8)
+        try:
+            months = int(months)
+        except:
+            months = 8
+        
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=months*30)
+        
+        # Monthly data
+        monthly_data = Booking.objects.filter(
+            created_at__range=[start_date, end_date]
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            bookings=Count('id'),
+            revenue=Sum('total_amount')
+        ).order_by('month')
+        
+        # Format monthly data
+        chart_data = []
+        for item in monthly_data:
+            chart_data.append({
+                'month': item['month'].strftime('%b'),
+                'bookings': item['bookings'],
+                'revenue': float(item['revenue'] or 0)
+            })
+        
+        # Vehicle type distribution
+        vehicle_distribution = Booking.objects.filter(
+            created_at__range=[start_date, end_date]
+        ).values('car__category').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        vehicle_data = []
+        colors = ['#3B82F6', '#8B5CF6', '#10B981', '#EF4444', '#F59E0B']
+        for i, item in enumerate(vehicle_distribution):
+            vehicle_data.append({
+                'name': item['car__category'] or 'Unknown',
+                'value': item['count'],
+                'color': colors[i % len(colors)]
+            })
+        
+        return Response({
+            'chart_data': chart_data,
+            'vehicle_distribution': vehicle_data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def recent_bookings(self, request):
+        """Get recent bookings for the table"""
+        limit = request.query_params.get('limit', 10)
+        status_filter = request.query_params.get('status', 'all')
+        
+        queryset = Booking.objects.all().select_related(
+            'car', 'customer', 'guarantor'
+        ).order_by('-created_at')
+        
+        if status_filter != 'all':
+            queryset = queryset.filter(status=status_filter)
+        
+        # Pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = BookingSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = BookingSerializer(queryset[:int(limit)], many=True)
+        return Response(serializer.data)

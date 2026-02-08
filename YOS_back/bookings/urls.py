@@ -1,7 +1,14 @@
 from django.urls import path, include
-from . import views
+from rest_framework.routers import DefaultRouter
+from .views import BookingViewSet
+
+router = DefaultRouter()
+router.register(r'', BookingViewSet, basename='booking')
 
 urlpatterns = [
-    path("", views.BookingViewSet.as_view({'get': 'list', 'post': 'create'}), name="booking-list-create"),
-    path("<int:pk>/", views.BookingViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name="booking-detail"),
+    path('', include(router.urls)),
+    # Custom endpoints
+    path('metrics/', BookingViewSet.as_view({'get': 'dashboard_metrics'}), name='dashboard-metrics'),
+    path('trends/', BookingViewSet.as_view({'get': 'booking_trends'}), name='booking-trends'),
+    path('recent/', BookingViewSet.as_view({'get': 'recent_bookings'}), name='recent-bookings'),
 ]

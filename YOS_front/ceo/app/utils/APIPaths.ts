@@ -33,6 +33,18 @@ const apiService = {
   addGuarantor: (customerId: string, data: any) => $axios.post(`/customers/${customerId}/add_guarantor/`, data),
   fetchCustomerAnalytics: () => $axios.get("/customers/analytics/"),
   sendBulkMessage: (data: any) => $axios.post("/customers/send_bulk_message/", data),
+
+  // Bookings API
+  fetchDashboardMetrics: (params?: any) => $axios.get("/bookings/metrics/", { params }),
+  fetchBookingTrends: (params?: any) => $axios.get("/bookings/trends/", { params }),
+  fetchBookings: (params?: any) => $axios.get("/bookings/recent/", { params }),
+  fetchBookingById: (id: string) => $axios.get(`/bookings/${id}/`),
+  createBooking: (data: any) => $axios.post("/bookings/", data),
+  updateBooking: (id: string, data: any) => $axios.put(`/bookings/${id}/`, data),
+  deleteBooking: (id: string) => $axios.delete(`/bookings/${id}/`),
+  cancelBooking: (id: string, data: any) => $axios.post(`/bookings/${id}/cancel/`, data),
+  markBookingReturned: (id: string, data: any) => $axios.post(`/bookings/${id}/mark_returned/`, data),
+  checkAvailability: (params: any) => $axios.get("/bookings/check_availability/", { params }),
   
 };
 

@@ -45,7 +45,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     search_fields = ['first_name', 'last_name', 'email', 'phone', 'ghana_card_id']
     ordering_fields = ['first_name', 'last_name', 'created_at', 'total_bookings', 'total_spent']
     
-    def get_serializer_class(self):
+    def get_serializer_class(self): #type: ignore
         if self.action == 'retrieve':
             return CustomerDetailSerializer
         elif self.action == 'create':
