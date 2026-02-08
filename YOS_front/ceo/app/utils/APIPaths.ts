@@ -46,6 +46,33 @@ const apiService = {
   markBookingReturned: (id: string, data: any) => $axios.post(`/bookings/${id}/mark_returned/`, data),
   checkAvailability: (params: any) => $axios.get("/bookings/check_availability/", { params }),
   
+  // Reports API
+  fetchComprehensiveFinancialReport: (params: any) => $axios.get('/reports/financial/', { params }),
+  exportFinancialReport: (data: any) => $axios.post('/reports/financial/export/', data),
+  fetchFinancialProjections: (params: any) => $axios.get('/reports/financial/projections/', { params }),
+
+  // Staff API
+   // Staff API
+  fetchStaff: (params?: any) => $axios.get("/staff/", { params }),
+  fetchStaffById: (id: string) => $axios.get(`/staff/${id}/`),
+  createStaff: (data: any) => $axios.post("/staff/", data),
+  updateStaff: (id: string, data: any) => $axios.put(`/staff/${id}/`, data),
+  deleteStaff: (id: string) => $axios.delete(`/staff/${id}/`),
+  suspendStaff: (id: string) => $axios.post(`/staff/${id}/suspend/`),
+  terminateStaff: (id: string, data: any) => $axios.post(`/staff/${id}/terminate/`, data),
+  reactivateStaff: (id: string) => $axios.post(`/staff/${id}/reactivate/`),
+  fetchStaffBookings: (id: string, params?: any) => $axios.get(`/staff/${id}/bookings/`, { params }),
+  fetchStaffSalaryHistory: (id: string, params?: any) => $axios.get(`/staff/${id}/salary_history/`, { params }),
+  fetchStaffDashboardMetrics: () => $axios.get("/staff/dashboard_metrics/"),
+  fetchDriverPerformance: () => $axios.get("/staff/driver_performance/"),
+
+  // Salary Payments
+  fetchSalaryPayments: (params?: any) => $axios.get("/salary-payments/", { params }),
+  createSalaryPayment: (data: any) => $axios.post("/salary-payments/", data),
+  updateSalaryPayment: (id: string, data: any) => $axios.put(`/salary-payments/${id}/`, data),
+  deleteSalaryPayment: (id: string) => $axios.delete(`/salary-payments/${id}/`),
+  bulkPaySalaries: (data: any) => $axios.post("/salary-payments/bulk_pay/", data),
+  fetchUpcomingPayments: () => $axios.get("/salary-payments/upcoming_payments/"),
 };
 
 export default apiService;

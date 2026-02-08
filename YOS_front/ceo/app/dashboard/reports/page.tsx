@@ -1,104 +1,144 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "../../lib/store/store";
-import { ReportGenerator } from "../../lib/store/types/reportGenerator";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import apiService from "@/app/utils/APIPaths";
 import {
-  FinancialStatement,
-  MonthlyReportData,
-} from "../../lib/store/types/reports";
+  FileText,
+  BarChart3,
+  Download,
+  Calendar,
+  DollarSign,
+  Car,
+  Users,
+  Shield,
+  Target,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Building,
+  Banknote,
+  Calculator,
+  ChartLine,
+  ChartPie,
+} from "lucide-react";
 import {
-  FaFilePdf,
-  FaPrint,
-  FaChartLine,
-  FaChartBar,
-  FaCalendarAlt,
-  FaCar,
-  FaMoneyBillWave,
-  FaCalculator,
-  FaEye,
-  FaFileExcel,
-} from "react-icons/fa";
-import { Line, Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ChartOptions,
-  ArcElement,
-  Title,
+  LineChart as RechartsLineChart,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
   Legend,
-  Filler,
-} from "chart.js";
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
-
-// Import jsPDF and html2canvas for PDF generation
-import jsPDF from "jspdf";
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts";
+import { format } from "date-fns";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
-export default function ReportPage() {
-  const { cars } = useSelector((state: RootState) => state.cars);
+// Types
+interface FinancialReport {
+  executive_summary: any;
+  income_statement: any;
+  balance_sheet: any;
+  cash_flow_statement: any;
+  key_metrics: any;
+  vehicle_performance: any[];
+  trend_analysis: any[];
+  financial_ratios: any;
+  management_discussion: any;
+  risk_assessment: any;
+  period: any;
+  generated_at: string;
+  report_id: string;
+}
+
+interface FinancialProjection {
+  projections: any[];
+  base_year: number;
+  assumptions: any;
+  sensitivity_analysis: any[];
+}
+
+export default function FinancialReportPage() {
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const [reportType, setReportType] = useState<"monthly" | "annual">("monthly");
-  const [period, setPeriod] = useState<string>(
-    new Date().toISOString().slice(0, 7) // YYYY-MM
-  );
+  const [reportType, setReportType] = useState<"quarterly" | "annual" | "monthly">("quarterly");
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [quarter, setQuarter] = useState<number>(Math.ceil((new Date().getMonth() + 1) / 3));
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
-  const [includeCharts, setIncludeCharts] = useState<boolean>(true);
-  const [financialStatement, setFinancialStatement] =
-    useState<FinancialStatement | null>(null);
-  const [monthlyData, setMonthlyData] = useState<MonthlyReportData[]>([]);
+  const [includeProjections, setIncludeProjections] = useState<boolean>(true);
+  const [report, setReport] = useState<FinancialReport | null>(null);
+  const [projections, setProjections] = useState<FinancialProjection | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [previewMode, setPreviewMode] = useState<boolean>(true);
+  const [exporting, setExporting] = useState<boolean>(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(["executive", "income", "metrics", "ratios"])
+  );
 
-  // Initialize report generator
-  const reportGenerator = useMemo(() => {
-    return new ReportGenerator(cars, period, reportType);
-  }, [cars, period, reportType]);
+  const toggleSection = (section: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(section)) {
+      newExpanded.delete(section);
+    } else {
+      newExpanded.add(section);
+    }
+    setExpandedSections(newExpanded);
+  };
 
-  // Generate report on initial load or when filters change
-  const generateReport = useCallback(() => {
+  // Fetch financial report
+  const fetchFinancialReport = useCallback(async () => {
     setLoading(true);
+    try {
+      const params: any = {
+        type: reportType,
+        year: year.toString(),
+      };
 
-    setTimeout(() => {
-      const statement = reportGenerator.generateFinancialStatement(
-        selectedVehicle === "all" ? undefined : selectedVehicle
-      );
-      setFinancialStatement(statement);
+      if (reportType === "quarterly") {
+        params.quarter = quarter;
+      } else if (reportType === "monthly") {
+        params.month = month;
+      }
 
-      const monthlyReport = reportGenerator.generateMonthlyReport();
-      setMonthlyData(monthlyReport);
+      if (selectedVehicle !== "all") {
+        params.vehicle_id = selectedVehicle;
+      }
 
+      const response = await apiService.fetchComprehensiveFinancialReport(params);
+      setReport(response.data);
+
+      // Fetch projections if enabled
+      if (includeProjections) {
+        const projResponse = await apiService.fetchFinancialProjections({
+          years: 3,
+          growth_rate: 15,
+        });
+        setProjections(projResponse.data);
+      }
+    } catch (error) {
+      console.error("Error fetching financial report:", error);
+    } finally {
       setLoading(false);
-    }, 500);
-  }, [selectedVehicle, reportGenerator]);
+    }
+  }, [reportType, year, quarter, month, selectedVehicle, includeProjections]);
+
   useEffect(() => {
-    generateReport();
-  }, [reportType, period, generateReport, selectedVehicle]);
+    fetchFinancialReport();
+  }, [fetchFinancialReport]);
 
-  const handleGeneratePDF = async () => {
+  // Export functions
+  const exportToPDF = async () => {
     if (!reportRef.current) return;
-
-    setLoading(true);
+    setExporting(true);
 
     try {
       const canvas = await html2canvas(reportRef.current, {
@@ -109,216 +149,151 @@ export default function ReportPage() {
       });
 
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
+      const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 190;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 10;
 
-      pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
-      pdf.save(`financial-report-${period}-${reportType}.pdf`);
+      pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Financial-Report-${report?.report_id || Date.now()}.pdf`);
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF. Please try again.");
+      console.error("Error exporting PDF:", error);
+      alert("Failed to export PDF. Please try again.");
     } finally {
-      setLoading(false);
+      setExporting(false);
     }
   };
 
-  //   const handlePrint = () => {
-  //     window.print();
-  //   };
+  const exportToExcel = () => {
+    if (!report) return;
 
-  const handleExportExcel = () => {
-    if (!financialStatement) return;
+    const workbook = XLSX.utils.book_new();
 
-    // Create CSV content
-    const csvContent = [
-      ["Financial Report", "Value"],
-      ["Report Type", reportType],
-      ["Period", period],
-      [
-        "Generated At",
-        new Date(financialStatement.generatedAt).toLocaleString(),
-      ],
-      ["", ""],
-      ["Financial Summary", ""],
-      [
-        "Total Revenue",
-        `$${financialStatement.summary.total_revenue.toLocaleString()}`,
-      ],
-      [
-        "Total Expenses",
-        `$${financialStatement.summary.total_expenses.toLocaleString()}`,
-      ],
-      [
-        "Net Profit",
-        `$${financialStatement.summary.netProfit.toLocaleString()}`,
-      ],
-      [
-        "Profit Margin",
-        `${financialStatement.summary.profitMargin.toFixed(2)}%`,
-      ],
-      ["ROI", `${financialStatement.summary.roi.toFixed(2)}%`],
-      [
-        "Utilization Rate",
-        `${financialStatement.summary.utilizationRate.toFixed(2)}%`,
-      ],
-      ["", ""],
-      ["Income Statement", ""],
-      [
-        "Rental Income",
-        `$${financialStatement.incomeStatement.revenue.rentalIncome.toLocaleString()}`,
-      ],
-      [
-        "Other Income",
-        `$${financialStatement.incomeStatement.revenue.otherIncome.toLocaleString()}`,
-      ],
-      [
-        "Total Revenue",
-        `$${financialStatement.incomeStatement.revenue.totalRevenue.toLocaleString()}`,
-      ],
-      ["", ""],
-      ["Expense Breakdown", ""],
-      [
-        "Maintenance",
-        `$${financialStatement.incomeStatement.expenses.maintenance.toLocaleString()}`,
-      ],
-      [
-        "Insurance",
-        `$${financialStatement.incomeStatement.expenses.insurance.toLocaleString()}`,
-      ],
-      [
-        "Fuel",
-        `$${financialStatement.incomeStatement.expenses.fuel.toLocaleString()}`,
-      ],
-      [
-        "Other",
-        `$${financialStatement.incomeStatement.expenses.other.toLocaleString()}`,
-      ],
-      [
-        "Depreciation",
-        `$${financialStatement.incomeStatement.expenses.depreciation.toLocaleString()}`,
-      ],
-      [
-        "Total Expenses",
-        `$${financialStatement.incomeStatement.expenses.totalExpenses.toLocaleString()}`,
-      ],
-      ["", ""],
-      [
-        "Net Income",
-        `$${financialStatement.incomeStatement.netIncome.toLocaleString()}`,
-      ],
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
+    // Executive Summary
+    const execData = [
+      ["EXECUTIVE SUMMARY"],
+      ["Company", report.executive_summary.company_name],
+      ["Report Period", report.executive_summary.report_period],
+      [],
+      ["KEY HIGHLIGHTS"],
+      ["Total Revenue", `₵${formatCurrency(report.executive_summary.key_highlights.total_revenue)}`],
+      ["Net Profit", `₵${formatCurrency(report.executive_summary.key_highlights.net_profit)}`],
+      ["Profit Margin", `${report.executive_summary.key_highlights.profit_margin.toFixed(2)}%`],
+      ["Total Assets", `₵${formatCurrency(report.executive_summary.key_highlights.total_assets)}`],
+      ["ROI", `${report.executive_summary.key_highlights.return_on_investment.toFixed(2)}%`],
+    ];
 
-    // Create download link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `financial-report-${period}-${reportType}.csv`
+    const execSheet = XLSX.utils.aoa_to_sheet(execData);
+    XLSX.utils.book_append_sheet(workbook, execSheet, "Executive Summary");
+
+    // Income Statement
+    const incomeData = [
+      ["INCOME STATEMENT"],
+      ["Revenue", "Amount"],
+      ["Booking Revenue", report.income_statement.operating_revenue.booking_revenue],
+      ["Late Fee Revenue", report.income_statement.operating_revenue.late_fee_revenue],
+      ["Total Revenue", report.income_statement.operating_revenue.total_operating_revenue],
+      [],
+      ["Expenses", "Amount"],
+      ["Maintenance", report.income_statement.operating_expenses.maintenance],
+      ["Insurance", report.income_statement.operating_expenses.insurance],
+      ["Salaries", report.income_statement.operating_expenses.salaries],
+      ["Total Expenses", report.income_statement.operating_expenses.total_operating_expenses],
+      [],
+      ["Net Income", report.income_statement.net_income],
+    ];
+
+    const incomeSheet = XLSX.utils.aoa_to_sheet(incomeData);
+    XLSX.utils.book_append_sheet(workbook, incomeSheet, "Income Statement");
+
+    // Vehicle Performance
+    const vehicleData = [
+      ["VEHICLE PERFORMANCE"],
+      ["Vehicle", "Revenue", "Profit", "Utilization", "Bookings"],
+      ...report.vehicle_performance.map(v => [
+        `${v.make} ${v.model}`,
+        v.revenue,
+        v.profit,
+        v.utilization_rate,
+        v.bookings_count,
+      ]),
+    ];
+
+    const vehicleSheet = XLSX.utils.aoa_to_sheet(vehicleData);
+    XLSX.utils.book_append_sheet(workbook, vehicleSheet, "Vehicle Performance");
+
+    XLSX.writeFile(workbook, `Financial-Report-${report.report_id}.xlsx`);
+  };
+
+  // Helper functions
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat("en-GH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const formatPercentage = (value: number): string => {
+    return `${value.toFixed(2)}%`;
+  };
+
+  const getGrowthIcon = (value: number) => {
+    return value >= 0 ? (
+      <ArrowUp className="w-4 h-4 text-green-500" />
+    ) : (
+      <ArrowDown className="w-4 h-4 text-red-500" />
     );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
-  // Chart configurations
-  const monthlyRevenueChartData = {
-    labels: monthlyData.map((m) => m.month),
-    datasets: [
-      {
-        label: "Revenue",
-        data: monthlyData.map((m) => m.revenue),
-        borderColor: "rgb(34, 197, 94)",
-        backgroundColor: "rgba(34, 197, 94, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-      {
-        label: "Expenses",
-        data: monthlyData.map((m) => m.expenses.total),
-        borderColor: "rgb(239, 68, 68)",
-        backgroundColor: "rgba(239, 68, 68, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-    ],
+  const getTrendColor = (value: number) => {
+    return value >= 0 ? "text-green-600" : "text-red-600";
   };
 
-  const expensePieChartData = financialStatement
-    ? {
-        labels: ["Maintenance", "Insurance", "Fuel", "Other", "Depreciation"],
-        datasets: [
-          {
-            data: [
-              financialStatement.incomeStatement.expenses.maintenance,
-              financialStatement.incomeStatement.expenses.insurance,
-              financialStatement.incomeStatement.expenses.fuel,
-              financialStatement.incomeStatement.expenses.other,
-              financialStatement.incomeStatement.expenses.depreciation,
-            ],
-            backgroundColor: [
-              "rgb(59, 130, 246)",
-              "rgb(16, 185, 129)",
-              "rgb(245, 158, 11)",
-              "rgb(139, 92, 246)",
-              "rgb(239, 68, 68)",
-            ],
-            borderWidth: 1,
-          },
-        ],
-      }
-    : null;
+  // Chart data preparation
+  const prepareRevenueExpenseChart = () => {
+    if (!report?.trend_analysis) return [];
 
-  const monthlyChartOptions: ChartOptions<"line"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-      tooltip: {
-        callbacks: {
-          // Replace 'any' with TooltipItem
-          label: (context) => {
-            const value = context.parsed.y ?? 0;
-            return `$${value.toLocaleString()}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          // Replace 'any' with number | string
-          callback: function (value: number | string) {
-            const numValue = Number(value);
-            return `$${
-              numValue >= 1000 ? (numValue / 1000).toFixed(1) + "k" : numValue
-            }`;
-          },
-        },
-      },
-    },
+    return report.trend_analysis.map(item => ({
+      period: item.period,
+      revenue: item.revenue,
+      bookings: item.bookings,
+    }));
   };
+
+  const prepareExpenseBreakdownChart = () => {
+    if (!report?.income_statement) return [];
+
+    const expenses = report.income_statement.operating_expenses;
+    return [
+      { name: "Maintenance", value: expenses.maintenance },
+      { name: "Insurance", value: expenses.insurance },
+      { name: "Salaries", value: expenses.salaries },
+    ];
+  };
+
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Generating report...
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-6 text-lg font-medium text-gray-600 dark:text-gray-400">
+            Generating Comprehensive Financial Report...
+          </p>
+          <p className="mt-2 text-sm text-gray-500">
+            This may take a moment as we compile detailed financial analysis
           </p>
         </div>
       </div>
@@ -326,770 +301,718 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Financial Reports
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Generate detailed financial reports and performance analysis
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Navigation Header */}
+      <div className="sticky top-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <FileText className="w-8 h-8 text-blue-600" />
+                Financial Reports
+              </h1>
+              {/* <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Professional financial reporting for investors and lenders
+              </p> */}
+            </div>
 
-        <div className="flex space-x-2">
-          <button
-            onClick={handleGeneratePDF}
-            disabled={!financialStatement}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            <FaFilePdf className="w-4 h-4 mr-2" />
-            Export PDF
-          </button>
-          <button
-            onClick={handleExportExcel}
-            disabled={!financialStatement}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            <FaFileExcel className="w-4 h-4 mr-2" />
-            Export Excel
-          </button>
-        </div>
-      </div>
-
-      {/* Report Controls */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Report Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Report Type
-            </label>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => setReportType("monthly")}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium ${
-                  reportType === "monthly"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                }`}
+                onClick={exportToPDF}
+                disabled={exporting || !report}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                <FaCalendarAlt className="inline mr-2" />
-                Monthly
+                <Download className="w-4 h-4" />
+                {exporting ? "Exporting..." : "Export PDF"}
               </button>
               <button
-                onClick={() => setReportType("annual")}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium ${
-                  reportType === "annual"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                }`}
+                onClick={exportToExcel}
+                disabled={!report}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                <FaChartBar className="inline mr-2" />
-                Annual
+                <BarChart3 className="w-4 h-4" />
+                Export Excel
               </button>
             </div>
           </div>
 
-          {/* Period Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {reportType === "monthly" ? "Month" : "Year"}
-            </label>
-            {reportType === "monthly" ? (
-              <input
-                type="month"
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
-              />
-            ) : (
+          {/* Report Controls */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Report Type
+              </label>
               <select
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
+                value={reportType}
+                onChange={(e) => setReportType(e.target.value as any)}
                 className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
               >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return (
-                    <option key={year} value={year.toString()}>
-                      {year}
-                    </option>
-                  );
-                })}
+                <option value="quarterly">Quarterly Report</option>
+                <option value="annual">Annual Report</option>
+                <option value="monthly">Monthly Report</option>
               </select>
-            )}
-          </div>
-
-          {/* Vehicle Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Vehicle
-            </label>
-            <select
-              value={selectedVehicle}
-              onChange={(e) => setSelectedVehicle(e.target.value)}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
-            >
-              <option value="all">All Vehicles</option>
-              {cars.map((car) => (
-                <option key={car.id} value={car.id}>
-                  {car.make} {car.model} ({car.year})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Chart Toggle */}
-          <div className="flex items-end">
-            <label className="flex items-center cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={includeCharts}
-                  onChange={(e) => setIncludeCharts(e.target.checked)}
-                  className="sr-only"
-                />
-                <div
-                  className={`block w-14 h-8 rounded-full ${
-                    includeCharts
-                      ? "bg-blue-600"
-                      : "bg-gray-300 dark:bg-gray-600"
-                  }`}
-                ></div>
-                <div
-                  className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition ${
-                    includeCharts ? "transform translate-x-6" : ""
-                  }`}
-                ></div>
-              </div>
-              <div className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
-                <FaChartLine className="inline mr-2" />
-                Include Charts
-              </div>
-            </label>
-          </div>
-        </div>
-
-        {/* Generate Button */}
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={generateReport}
-            className="px-6 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:opacity-90 flex items-center"
-          >
-            <FaCalculator className="w-5 h-5 mr-2" />
-            Generate Report
-          </button>
-        </div>
-      </div>
-
-      {/* Preview Toggle */}
-      <div className="flex justify-center">
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-2 inline-flex">
-          <button
-            onClick={() => setPreviewMode(true)}
-            className={`px-4 py-2 rounded-md flex items-center ${
-              previewMode
-                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
-          >
-            <FaEye className="w-4 h-4 mr-2" />
-            Preview
-          </button>
-          <button
-            onClick={() => setPreviewMode(false)}
-            className={`px-4 py-2 rounded-md flex items-center ${
-              !previewMode
-                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
-          >
-            <FaPrint className="w-4 h-4 mr-2" />
-            Print View
-          </button>
-        </div>
-      </div>
-
-      {/* Report Preview */}
-      {financialStatement && (
-        <div
-          ref={reportRef}
-          className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg ${
-            previewMode ? "p-8" : "p-12"
-          } border border-gray-200 dark:border-gray-700`}
-          style={
-            previewMode
-              ? {}
-              : { minHeight: "297mm", background: "white", color: "black" }
-          }
-        >
-          {/* Report Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-left">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {selectedVehicle === "all"
-                    ? "Fleet"
-                    : cars.find((c) => c.id === selectedVehicle)?.make +
-                      " " +
-                      cars.find((c) => c.id === selectedVehicle)?.model}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Financial Performance Report
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">
-                  Generated:{" "}
-                  {new Date(
-                    financialStatement.generatedAt
-                  ).toLocaleDateString()}
-                </p>
-                <p className="text-sm text-gray-500">
-                  Period:{" "}
-                  {reportType === "monthly"
-                    ? new Date(period + "-01").toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : `Year ${period}`}
-                </p>
-              </div>
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              FINANCIAL REPORT
-            </h1>
-            <div className="h-1 w-24 bg-blue-600 mx-auto"></div>
-          </div>
-
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">
-                    Total Revenue
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${financialStatement.summary.total_revenue.toLocaleString()}
-                  </p>
-                </div>
-                <FaMoneyBillWave className="w-8 h-8 text-blue-500" />
-              </div>
             </div>
 
-            <div className="bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-600 dark:text-green-400">
-                    Net Profit
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${financialStatement.summary.netProfit.toLocaleString()}
-                  </p>
-                </div>
-                <FaChartLine className="w-8 h-8 text-green-500" />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Year
+              </label>
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
+              >
+                {[2025, 2026, 2027, 2028].map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-4 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-purple-600 dark:text-purple-400">
-                    Profit Margin
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {financialStatement.summary.profitMargin.toFixed(2)}%
-                  </p>
-                </div>
-                <FaCalculator className="w-8 h-8 text-purple-500" />
-              </div>
-            </div>
-
-            <div className="bg-linear-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                    ROI
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {financialStatement.summary.roi.toFixed(2)}%
-                  </p>
-                </div>
-                <FaCar className="w-8 h-8 text-yellow-500" />
-              </div>
-            </div>
-          </div>
-
-          {/* Income Statement */}
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b">
-              Income Statement
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Revenue */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-800 dark:text-white mb-3">
-                  Revenue
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Rental Income
-                    </span>
-                    <span className="font-medium text-green-600">
-                      $
-                      {financialStatement.incomeStatement.revenue.rentalIncome.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Other Income
-                    </span>
-                    <span className="font-medium text-green-600">
-                      $
-                      {financialStatement.incomeStatement.revenue.otherIncome.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
-                    <span className="font-semibold">Total Revenue</span>
-                    <span className="font-bold text-green-700">
-                      $
-                      {financialStatement.incomeStatement.revenue.totalRevenue.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Expenses */}
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-800 dark:text-white mb-3">
-                  Expenses
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Maintenance
-                    </span>
-                    <span className="font-medium text-red-600">
-                      $
-                      {financialStatement.incomeStatement.expenses.maintenance.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Insurance
-                    </span>
-                    <span className="font-medium text-red-600">
-                      $
-                      {financialStatement.incomeStatement.expenses.insurance.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Fuel
-                    </span>
-                    <span className="font-medium text-red-600">
-                      $
-                      {financialStatement.incomeStatement.expenses.fuel.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Other
-                    </span>
-                    <span className="font-medium text-red-600">
-                      $
-                      {financialStatement.incomeStatement.expenses.other.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      Depreciation
-                    </span>
-                    <span className="font-medium text-red-600">
-                      $
-                      {financialStatement.incomeStatement.expenses.depreciation.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-600">
-                    <span className="font-semibold">Total Expenses</span>
-                    <span className="font-bold text-red-700">
-                      $
-                      {financialStatement.incomeStatement.expenses.totalExpenses.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Net Income */}
-            <div className="mt-6 p-4 bg-linear-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">
-                  NET INCOME
-                </span>
-                <span
-                  className={`text-2xl font-bold ${
-                    financialStatement.incomeStatement.netIncome >= 0
-                      ? "text-green-700"
-                      : "text-red-700"
-                  }`}
+            {reportType === "quarterly" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Quarter
+                </label>
+                <select
+                  value={quarter}
+                  onChange={(e) => setQuarter(Number(e.target.value))}
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white"
                 >
-                  $
-                  {financialStatement.incomeStatement.netIncome.toLocaleString()}
-                </span>
+                  <option value={1}>Q1 (Jan-Mar)</option>
+                  <option value={2}>Q2 (Apr-Jun)</option>
+                  <option value={3}>Q3 (Jul-Sep)</option>
+                  <option value={4}>Q4 (Oct-Dec)</option>
+                </select>
               </div>
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {financialStatement.incomeStatement.netIncome >= 0
-                  ? "✅ PROFIT"
-                  : "⚠️ LOSS"}
-              </div>
+            )}
+
+            <div className="flex items-end">
+              <button
+                onClick={fetchFinancialReport}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2"
+              >
+                <Calculator className="w-4 h-4" />
+                Update Report
+              </button>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Charts Section */}
-          {includeCharts && (
-            <div className="mb-8">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b">
-                Financial Analysis
-              </h3>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Monthly Revenue vs Expenses */}
-                <div className="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-semibold text-gray-800 dark:text-white mb-4">
-                    Monthly Revenue vs Expenses (Last 12 Months)
-                  </h4>
-                  <div className="h-64">
-                    <Line
-                      data={monthlyRevenueChartData}
-                      options={monthlyChartOptions}
-                    />
+      {/* Main Content */}
+      <div className="px-6 py-8">
+        {report ? (
+          <div className="max-w-7xl mx-auto">
+            {/* Report Header */}
+            <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-8 text-white">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">YOS Car Rentals</h2>
+                  <p className="text-blue-100 mb-4">
+                    Comprehensive Financial Report
+                  </p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>{report.period.start} to {report.period.end}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>Generated: {new Date(report.generated_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span>Report ID: {report.report_id}</span>
+                    </div>
                   </div>
                 </div>
-
-                {/* Expense Breakdown */}
-                <div className="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-semibold text-gray-800 dark:text-white mb-4">
-                    Expense Breakdown
-                  </h4>
-                  <div className="h-64">
-                    {expensePieChartData && <Pie data={expensePieChartData} />}
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">
+                      ¢{formatCurrency(report.executive_summary.key_highlights.total_revenue)}
+                    </div>
+                    <div className="text-sm text-blue-100">Total Revenue</div>
                   </div>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Vehicle Performance */}
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b">
-              Vehicle Performance Breakdown
-            </h3>
+            {/* Key Metrics Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className={`text-sm font-medium ${getTrendColor(report.executive_summary.key_highlights.profit_margin)}`}>
+                    {getGrowthIcon(report.executive_summary.key_highlights.profit_margin)}
+                    {formatPercentage(report.executive_summary.key_highlights.profit_margin)}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  ₵{formatCurrency(report.executive_summary.key_highlights.net_profit)}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">Net Profit</p>
+              </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-700">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                      Vehicle
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                      Revenue
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                      Expenses
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                      Profit
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                      Margin
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                      Utilization
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {financialStatement.detailedBreakdown.byVehicle?.map(
-                    (vehicle) => {
-                      const profitMargin =
-                        vehicle.revenue > 0
-                          ? (vehicle.profit / vehicle.revenue) * 100
-                          : 0;
-                      return (
-                        <tr
-                          key={vehicle.vehicleId}
-                          className="border-b border-gray-100 dark:border-gray-700"
-                        >
-                          <td className="py-3 px-4">
-                            <div className="font-medium">
-                              {vehicle.make} {vehicle.model}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {vehicle.vehicleId}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 font-medium text-green-600">
-                            ${vehicle.revenue.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 font-medium text-red-600">
-                            ${vehicle.expenses.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 font-bold">
-                            <span
-                              className={
-                                vehicle.profit >= 0
-                                  ? "text-green-700"
-                                  : "text-red-700"
-                              }
-                            >
-                              ${vehicle.profit.toLocaleString()}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <Building className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <span className="text-sm font-medium text-green-600">
+                    {getGrowthIcon(report.executive_summary.key_highlights.return_on_investment)}
+                    {formatPercentage(report.executive_summary.key_highlights.return_on_investment)}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  ₵{formatCurrency(report.executive_summary.key_highlights.total_assets)}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">Total Assets</p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                    <Car className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <span className="text-sm font-medium text-purple-600">
+                    {formatPercentage(report.executive_summary.key_highlights.fleet_utilization)}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  {formatPercentage(report.executive_summary.key_highlights.fleet_utilization)}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">Fleet Utilization</p>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                    <Users className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <span className="text-sm font-medium text-green-600">
+                    {getGrowthIcon(report.executive_summary.key_highlights.customer_growth || 0)}
+                    {formatPercentage(report.executive_summary.key_highlights.customer_growth || 0)}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  {formatPercentage(report.executive_summary.key_highlights.customer_growth || 0)}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">Customer Growth</p>
+              </div>
+            </div>
+
+            {/* Executive Summary */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
+              <div
+                className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer"
+                onClick={() => toggleSection("executive")}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <Target className="w-5 h-5" />
+                    Executive Summary
+                  </h3>
+                  {expandedSections.has("executive") ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
+              </div>
+              {expandedSections.has("executive") && (
+                <div className="p-6">
+                  <div className="prose prose-blue dark:prose-invert max-w-none">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 mb-6">
+                      <h4 className="font-bold text-lg mb-3">Business Overview</h4>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        {report.executive_summary.business_overview}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div>
+                        <h4 className="font-bold text-lg mb-3">Financial Performance</h4>
+                        <p className="text-gray-700 dark:text-gray-300">
+                          {report.executive_summary.financial_performance}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-lg mb-3">Business Outlook</h4>
+                        <p className="text-gray-700 dark:text-gray-300">
+                          {report.executive_summary.outlook}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Income Statement */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
+              <div
+                className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer"
+                onClick={() => toggleSection("income")}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <Banknote className="w-5 h-5" />
+                    Income Statement
+                  </h3>
+                  {expandedSections.has("income") ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
+              </div>
+              {expandedSections.has("income") && (
+                <div className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Revenue Section */}
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
+                      <h4 className="font-bold text-lg mb-4 text-green-800 dark:text-green-300">
+                        Revenue
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Booking Revenue
+                          </span>
+                          <span className="font-semibold text-green-700 dark:text-green-400">
+                            ₵{formatCurrency(report.income_statement.operating_revenue.booking_revenue)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Late Fee Revenue
+                          </span>
+                          <span className="font-semibold text-green-700 dark:text-green-400">
+                            ₵{formatCurrency(report.income_statement.operating_revenue.late_fee_revenue)}
+                          </span>
+                        </div>
+                        <div className="pt-3 border-t border-green-200 dark:border-green-700">
+                          <div className="flex justify-between">
+                            <span className="font-bold">Total Revenue</span>
+                            <span className="font-bold text-green-800 dark:text-green-300">
+                              ₵{formatCurrency(report.income_statement.operating_revenue.total_operating_revenue)}
                             </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`font-medium ${
-                                profitMargin >= 0
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expenses Section */}
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6">
+                      <h4 className="font-bold text-lg mb-4 text-red-800 dark:text-red-300">
+                        Expenses
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Maintenance
+                          </span>
+                          <span className="font-semibold text-red-700 dark:text-red-400">
+                            ₵{formatCurrency(report.income_statement.operating_expenses.maintenance)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Insurance
+                          </span>
+                          <span className="font-semibold text-red-700 dark:text-red-400">
+                            ₵{formatCurrency(report.income_statement.operating_expenses.insurance)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Salaries
+                          </span>
+                          <span className="font-semibold text-red-700 dark:text-red-400">
+                            ₵{formatCurrency(report.income_statement.operating_expenses.salaries)}
+                          </span>
+                        </div>
+                        <div className="pt-3 border-t border-red-200 dark:border-red-700">
+                          <div className="flex justify-between">
+                            <span className="font-bold">Total Expenses</span>
+                            <span className="font-bold text-red-800 dark:text-red-300">
+                              ₵{formatCurrency(report.income_statement.operating_expenses.total_operating_expenses)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Net Income */}
+                    <div className={`rounded-xl p-6 ${
+                      report.income_statement.net_income >= 0
+                        ? "bg-green-50 dark:bg-green-900/20"
+                        : "bg-red-50 dark:bg-red-900/20"
+                    }`}>
+                      <h4 className="font-bold text-lg mb-4">Net Income</h4>
+                      <div className="text-center py-6">
+                        <div className={`text-4xl font-bold mb-2 ${
+                          report.income_statement.net_income >= 0
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400"
+                        }`}>
+                          ₵{formatCurrency(report.income_statement.net_income)}
+                        </div>
+                        <div className={`text-sm font-medium px-3 py-1 rounded-full inline-block ${
+                          report.income_statement.net_income >= 0
+                            ? "bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-300"
+                            : "bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-300"
+                        }`}>
+                          {report.income_statement.net_income >= 0 ? "PROFIT" : "LOSS"}
+                        </div>
+                      </div>
+                      <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+                        EBITDA: ₵{formatCurrency(report.income_statement.ebitda)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              {/* Revenue Trend Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <ChartLine className="w-5 h-5" />
+                  Revenue Trend Analysis
+                </h4>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={prepareRevenueExpenseChart()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="period" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip
+                        formatter={(value) => [`₵${formatCurrency(Number(value))}`, "Revenue"]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#3B82F6"
+                        fill="#3B82F6"
+                        fillOpacity={0.3}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Expense Breakdown Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <ChartPie className="w-5 h-5" />
+                  Expense Breakdown
+                </h4>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={prepareExpenseBreakdownChart()}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name}: ${percent ? (percent * 100).toFixed(1) : 0}%`
+                        }
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {prepareExpenseBreakdownChart().map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => [`₵${formatCurrency(Number(value))}`, "Amount"]} />
+                      <Legend />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Ratios */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
+              <div
+                className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer"
+                onClick={() => toggleSection("ratios")}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <Calculator className="w-5 h-5" />
+                    Financial Ratios & Analysis
+                  </h3>
+                  {expandedSections.has("ratios") ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
+              </div>
+              {expandedSections.has("ratios") && (
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {Object.entries(report.financial_ratios).map(([category, ratios]: [string, any]) => (
+                      <div key={category} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                        <h4 className="font-bold text-gray-800 dark:text-white mb-3 capitalize">
+                          {category.replace("_", " ")}
+                        </h4>
+                        <div className="space-y-3">
+                          {Object.entries(ratios).map(([name, value]: [string, any]) => (
+                            <div key={name} className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                                {name.replace("_", " ")}
+                              </span>
+                              <span className={`font-medium ${
+                                typeof value === "number" && value > 0
                                   ? "text-green-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {profitMargin.toFixed(2)}%
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            {/* Calculate utilization rate for this vehicle */}
+                                  : "text-gray-600"
+                              }`}>
+                                {typeof value === "number" 
+                                  ? value.toFixed(2) + (name.includes("ratio") || name.includes("margin") ? "%" : "")
+                                  : value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Vehicle Performance */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <Car className="w-5 h-5" />
+                  Vehicle Performance Analysis
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-700">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Vehicle
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Revenue
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Maintenance Cost
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Profit
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Utilization
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Bookings
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.vehicle_performance.map((vehicle, index) => (
+                      <tr
+                        key={vehicle.vehicle_id}
+                        className={`border-b border-gray-100 dark:border-gray-700 ${
+                          index % 2 === 0 ? "bg-gray-50/50 dark:bg-gray-800/50" : ""
+                        }`}
+                      >
+                        <td className="py-3 px-4">
+                          <div className="font-medium">
+                            {vehicle.make} {vehicle.model}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {vehicle.year} • {vehicle.license_plate}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-medium text-green-600">
+                          ₵{formatCurrency(vehicle.revenue)}
+                        </td>
+                        <td className="py-3 px-4 font-medium text-red-600">
+                          ₵{formatCurrency(vehicle.maintenance_cost)}
+                        </td>
+                        <td className="py-3 px-4 font-bold">
+                          <span className={vehicle.profit >= 0 ? "text-green-700" : "text-red-700"}>
+                            ₵{formatCurrency(vehicle.profit)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
                             <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                               <div
                                 className="bg-blue-600 h-2 rounded-full"
-                                style={{
-                                  width: `${Math.min(
-                                    (vehicle.profit / 10000) * 100,
-                                    100
-                                  )}%`,
-                                }}
+                                style={{ width: `${Math.min(vehicle.utilization_rate, 100)}%` }}
                               ></div>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Capital Expenditure */}
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b">
-              Capital Expenditure Analysis
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-linear-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-indigo-600 dark:text-indigo-400">
-                      Total Investment
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      $
-                      {cars
-                        .reduce((sum, car) => sum + (car.purchasePrice ?? 0), 0)
-                        .toLocaleString()}
-                    </p>
-                  </div>
-                  <FaMoneyBillWave className="w-8 h-8 text-indigo-500" />
-                </div>
-              </div>
-
-              <div className="bg-linear-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 p-4 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-cyan-600 dark:text-cyan-400">
-                      Current Value
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      $
-                      {cars
-                        .reduce((sum, car) => sum + (car.currentValue || 0), 0)
-                        .toLocaleString()}
-                    </p>
-                  </div>
-                  <FaChartLine className="w-8 h-8 text-cyan-500" />
-                </div>
-              </div>
-
-              <div className="bg-linear-to-br from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 p-4 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-rose-600 dark:text-rose-400">
-                      Accumulated Depreciation
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      $
-                      {(
-                        cars.reduce(
-                          (sum, car) => sum + (car.purchasePrice ?? 0),
-                          0
-                        ) -
-                        cars.reduce(
-                          (sum, car) => sum + (car.currentValue || 0),
-                          0
-                        )
-                      ).toLocaleString()}
-                    </p>
-                  </div>
-                  <FaCalculator className="w-8 h-8 text-rose-500" />
-                </div>
+                            <span className="text-sm font-medium">
+                              {vehicle.utilization_rate.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-center font-medium">
+                            {vehicle.bookings_count}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-          </div>
 
-          {/* Summary & Recommendations */}
-          <div className="mt-8 p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-xl border border-blue-200 dark:border-blue-800">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
-              Executive Summary
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-800 dark:text-white mb-2">
-                  Key Findings
-                </h4>
-                <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2">✓</span>
-                    <span>
-                      Overall{" "}
-                      {financialStatement.summary.netProfit >= 0
-                        ? "profitable"
-                        : "unprofitable"}{" "}
-                      operation
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">ℹ</span>
-                    <span>
-                      Utilization rate:{" "}
-                      {financialStatement.summary.utilizationRate.toFixed(1)}%
-                    </span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-purple-500 mr-2">📊</span>
-                    <span>
-                      ROI: {financialStatement.summary.roi.toFixed(1)}% on
-                      capital investment
-                    </span>
-                  </li>
-                </ul>
+            {/* Management Discussion */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
+              <div
+                className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer"
+                onClick={() => toggleSection("management")}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <Building className="w-5 h-5" />
+                    Management Discussion & Analysis
+                  </h3>
+                  {expandedSections.has("management") ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                  )}
+                </div>
               </div>
+              {expandedSections.has("management") && (
+                <div className="p-6">
+                  <div className="prose prose-blue dark:prose-invert max-w-none">
+                    {Object.entries(report.management_discussion).map(([section, content]: [string, any]) => (
+                      <div key={section} className="mb-6 last:mb-0">
+                        <h4 className="font-bold text-lg mb-3 capitalize">
+                          {section.replace("_", " ")}
+                        </h4>
+                        {typeof content === "string" ? (
+                          <p className="text-gray-700 dark:text-gray-300 mb-4">{content}</p>
+                        ) : Array.isArray(content) ? (
+                          <ul className="space-y-2">
+                            {content.map((item: string, index: number) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-500 mt-1 shrink-0" />
+                                <span className="text-gray-700 dark:text-gray-300">{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : typeof content === "object" ? (
+                          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                            {Object.entries(content).map(([key, value]: [string, any]) => (
+                              <div key={key} className="mb-2">
+                                <span className="font-medium capitalize">{key.replace("_", " ")}:</span>
+                                <span className="ml-2 text-gray-700 dark:text-gray-300">{value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
-              <div>
-                <h4 className="font-semibold text-gray-800 dark:text-white mb-2">
-                  Recommendations
-                </h4>
-                <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                  {financialStatement.incomeStatement.expenses.maintenance /
-                    financialStatement.incomeStatement.expenses.totalExpenses >
-                    0.4 && (
-                    <li className="flex items-start">
-                      <span className="text-yellow-500 mr-2">⚠</span>
-                      <span>
-                        Consider preventive maintenance to reduce repair costs
-                      </span>
-                    </li>
-                  )}
-                  {financialStatement.summary.utilizationRate < 60 && (
-                    <li className="flex items-start">
-                      <span className="text-blue-500 mr-2">🚗</span>
-                      <span>
-                        Explore marketing strategies to increase vehicle
-                        utilization
-                      </span>
-                    </li>
-                  )}
-                  {financialStatement.summary.profitMargin > 30 && (
-                    <li className="flex items-start">
-                      <span className="text-green-500 mr-2">💡</span>
-                      <span>
-                        Consider fleet expansion based on current profitability
-                      </span>
-                    </li>
-                  )}
-                </ul>
+            {/* Risk Assessment */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <Shield className="w-5 h-5" />
+                  Risk Assessment & Mitigation
+                </h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {Object.entries(report.risk_assessment || {}).map(([category, risks]: [string, any]) => (
+                    <div key={category} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                      <h4 className="font-bold text-gray-800 dark:text-white mb-3 capitalize">
+                        {category.replace("_", " ")} Risks
+                      </h4>
+                      <div className="space-y-3">
+                        {Array.isArray(risks) && risks.map((risk: any, index: number) => (
+                          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="font-medium text-gray-800 dark:text-white">
+                                {risk.risk}
+                              </span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                risk.level === 'High' 
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  : risk.level === 'Medium'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              }`}>
+                                {risk.level}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Mitigation: {risk.mitigation}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500">
-            <p>
-              This report was generated automatically by FleetPro Management
-              System
-            </p>
-            <p className="mt-1">
-              Report ID: {Date.now().toString(36).toUpperCase()}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Print Instructions */}
-      {previewMode && financialStatement && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-6">
-          <div className="flex items-start">
-            <FaPrint className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-yellow-800 dark:text-yellow-300">
-                Printing Instructions
-              </h4>
-              <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-                For best results when printing or saving as PDF:
+            {/* Report Footer */}
+            <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              <p>
+                This report has been prepared in accordance with generally accepted accounting principles.
+                The information contained herein is confidential and intended for authorized recipients only.
               </p>
-              <ul className="text-sm text-yellow-700 dark:text-yellow-400 mt-2 space-y-1 list-disc pl-5">
-                <li>Switch to Print View for optimized layout</li>
-                <li>Use Chrome or Edge browsers for best PDF quality</li>
-                <li>Set page orientation to Portrait</li>
-                <li>Check Background graphics in print settings</li>
-              </ul>
+              <p className="mt-2">
+                Report ID: {report.report_id} | Generated: {new Date(report.generated_at).toLocaleString()}
+              </p>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No Financial Report Available
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Configure your report parameters and click "Update Report" to generate
+            </p>
+          </div>
+        )}
+      </div>
 
-      {/* Print Styles */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #report-content,
-          #report-content * {
-            visibility: visible;
-          }
-          #report-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white !important;
-            color: black !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}</style>
+      {/* Print Section (Hidden for PDF export) */}
+      <div ref={reportRef} className="hidden">
+        {/* This div contains the report for PDF export */}
+        {report && (
+          <div className="p-8 bg-white">
+            {/* PDF-specific content layout */}
+            <div style={{ fontFamily: "Arial, sans-serif", fontSize: "11px" }}>
+              {/* PDF content would be structured differently for print */}
+              <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
+                YOS Car Rentals - Financial Report
+              </h1>
+              {/* ... PDF optimized content ... */}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

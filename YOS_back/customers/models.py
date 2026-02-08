@@ -79,7 +79,7 @@ class Customer(models.Model):
     def total_bookings(self):
         """Get total number of bookings for this customer"""
         from bookings.models import Booking
-        return Booking.objects.filter(customer=self).count()
+        return getattr(Booking.objects.filter(customer=self).count(), 'count', 0)
     
     @property
     def total_spent(self):
