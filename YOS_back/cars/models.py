@@ -29,6 +29,7 @@ class Car(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     make = models.CharField(max_length=100)
     model = models.CharField(max_length=100)
+    car_type = models.CharField(max_length=50, blank=True)
     year = models.IntegerField(
         validators=[MinValueValidator(1900), MaxValueValidator(2100)]
     )

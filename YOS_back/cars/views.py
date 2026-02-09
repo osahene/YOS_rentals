@@ -1,5 +1,7 @@
 from rest_framework import viewsets, permissions, filters as filtre, status
 from rest_framework.decorators import action
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Prefetch
@@ -9,7 +11,7 @@ import json
 
 from insurance.models import InsurancePolicy
 from .models import Car
-from .serializers import CarSerializer, CarDetailSerializer, CreateCarSerializer
+from .serializers import CarPublicSerializer, CarSerializer, CarDetailSerializer, CreateCarSerializer
 from .filters import CarFilter
 from events.models import Event, MaintenanceRecord
 from bookings.models import Booking
@@ -184,3 +186,22 @@ class CarViewSet(viewsets.ModelViewSet):
         if revenue > 0:
             return ((revenue - expenses) / revenue) * 100
         return 0
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_cars_list(request):
+    """Public endpoint to get all available cars"""
+    cars = Car.objects.all()
+    serializer = CarPublicSerializer(cars, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_car_detail(request, car_id):
+    """Public endpoint to get car details"""
+    try:
+        car = Car.objects.get(id=car_id, is_active=True)
+        serializer = CarPublicSerializer(car, context={'request': request})
+        return Response(serializer.data)
+    except Car.DoesNotExist:
+        return Response({'error': 'Car not found'}, status=404)

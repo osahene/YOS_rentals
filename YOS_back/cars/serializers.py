@@ -18,7 +18,7 @@ class CarSerializer(serializers.ModelSerializer):
     total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     total_expenses = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     net_profit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
-    
+    images = serializers.SerializerMethodField()
     
     class Meta:
         model = Car
@@ -30,6 +30,30 @@ class CarSerializer(serializers.ModelSerializer):
             'images', 'created_at', 'total_revenue', 'total_expenses', 'net_profit',
         ]
         read_only_fields = ['created_at', 'updated_at', 'total_revenue', 'total_expenses', 'net_profit']
+    
+    def get_images(self, obj):
+        request = self.context.get('request')
+        images = obj.images or []
+        if request:
+            return [request.build_absolute_uri(url) for url in images]
+        return images
+class CarPublicSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Car
+        fields = [
+            'id', 'make', 'model', 'year', 'color', 'car_type', 'license_plate', 'fuel_type', 
+            'transmission', 'seats', 'features', 'description', 'images',
+        ]
+        read_only_fields = ['created_at', 'updated_at', ]
+    
+    def get_images(self, obj):
+        request = self.context.get('request')
+        images = obj.images or []
+        if request:
+            return [request.build_absolute_uri(url) for url in images]
+        return images
 
 class CarDetailSerializer(CarSerializer):
     current_insurance = serializers.SerializerMethodField()
