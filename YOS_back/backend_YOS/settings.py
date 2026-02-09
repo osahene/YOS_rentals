@@ -28,9 +28,9 @@ if not FERNET_KEY:
     raise ValueError("DJANGO_FERNET_KEY environment variable is not set!")
 
 # ALLOWED_HOSTS = []
-# ALLOWED_HOSTS.extend(
-#     filter(None, os.environ.get('ALLOWED_HOSTS', '').split(',')))
-# ALLOWED_HOSTS.append(gethostbyname(gethostname()))
+ALLOWED_HOSTS.extend(
+    filter(None, os.environ.get('ALLOWED_HOSTS', '').split(',')))
+ALLOWED_HOSTS.append(gethostbyname(gethostname()))
 
 # Application definition
 
