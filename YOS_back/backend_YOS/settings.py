@@ -20,7 +20,7 @@ SALT_KEY = os.environ.get("DJANGO_SALT_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'https://yos-backend.onrender.com/', 'https://yoscarrentals.com/', 'https://admin.yoscarrentals.com', 'https://manager.yoscarrentals.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'yos-backend.onrender.com/', 'yoscarrentals.com/', 'admin.yoscarrentals.com', 'manager.yoscarrentals.com']
 
 # Load your environment variable securely
 FERNET_KEY = os.environ.get('DJANGO_FERNET_KEY', None)
@@ -28,9 +28,9 @@ if not FERNET_KEY:
     raise ValueError("DJANGO_FERNET_KEY environment variable is not set!")
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS.extend(
-    filter(None, os.environ.get('ALLOWED_HOSTS', '').split(',')))
-ALLOWED_HOSTS.append(gethostbyname(gethostname()))
+# ALLOWED_HOSTS.extend(
+#     filter(None, os.environ.get('ALLOWED_HOSTS', '').split(',')))
+# ALLOWED_HOSTS.append(gethostbyname(gethostname()))
 
 # Application definition
 
