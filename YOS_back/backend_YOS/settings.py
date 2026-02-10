@@ -4,6 +4,7 @@ import sys
 from datetime import timedelta
 from dotenv import load_dotenv
 from socket import gethostbyname, gethostname
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 load_dotenv()
@@ -18,9 +19,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 SALT_KEY = os.environ.get("DJANGO_SALT_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'yos-backend.onrender.com', 'yoscarrentals.com', 'admin.yoscarrentals.com', 'manager.yoscarrentals.com']
+IS_RENDER = os.environ.get('RENDER')
+
+DEBUG = not IS_RENDER
+
+ALLOWED_HOSTS = []
+
+if IS_RENDER:
+    render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    if render_hostname:
+        ALLOWED_HOSTS.append(render_hostname)
+        
+    # Add your custom domains
+    ALLOWED_HOSTS.extend([
+        'yoscarrentals.com', 
+        'admin.yoscarrentals.com', 
+        'manager.yoscarrentals.com'
+    ])
+else:
+    # Local development hosts
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
 
 # Load your environment variable securely
 FERNET_KEY = os.environ.get('DJANGO_FERNET_KEY', None)
@@ -101,12 +120,24 @@ WSGI_APPLICATION = "backend_YOS.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if IS_RENDER:
+    # PRODUCTION: Use the Render PostgreSQL database
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        )
     }
-}
+else:
+    # LOCAL DEVELOPMENT: Use SQLite
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -158,14 +189,14 @@ AUTH_USER_MODEL = "account.User"
 
 # ===== Cookie Settings =====
 # Session Cookies
-SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = IS_RENDER
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_COOKIE_SAMESITE = "Lax"  # Changed to Lax for cross-origin requests
 SESSION_COOKIE_NAME = "sessionid"
 
 # CSRF Cookies
-CSRF_COOKIE_HTTPONLY = False  # Set to False so JavaScript can read it
+CSRF_COOKIE_HTTPONLY = IS_RENDER  # Set to False so JavaScript can read it
 CSRF_COOKIE_SECURE = False  # Set to True in production
 CSRF_COOKIE_SAMESITE = "Lax"  # Changed to Lax
 CSRF_TRUSTED_ORIGINS = [
@@ -178,14 +209,14 @@ CSRF_TRUSTED_ORIGINS = [
 JWT_AUTH_COOKIE = 'access_token'
 JWT_AUTH_REFRESH_COOKIE = 'refresh_token'
 JWT_AUTH_SAMESITE = 'Lax'
-JWT_AUTH_SECURE = False  # Set to True in production
+JWT_AUTH_SECURE = IS_RENDER  # Set to True in production
 
 # ===== Security Settings =====
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = False  # Set to True in production
+SECURE_SSL_REDIRECT = IS_RENDER  # Set to True in production
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
