@@ -229,8 +229,8 @@ CORS_ALLOW_ALL_ORIGINS = False  # Keep this False for security
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Next.js frontend
     "http://localhost:9000",
-    "https://yos-backend.onrender.com/",
-    "https://yoscarrentals.com/",
+    "https://yos-backend.onrender.com",
+    "https://yoscarrentals.com",
     "https://admin.yoscarrentals.com",
     "https://manager.yoscarrentals.com",
 ]

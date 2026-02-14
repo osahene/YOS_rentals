@@ -3,6 +3,7 @@ import uuid
 from account.models import User
 from decimal import Decimal
 from customers.models import Customer, Guarantor
+from staff.models import Staff
 from cars.models import Car
 import math
 import datetime
@@ -38,7 +39,7 @@ class Booking(models.Model):
     car = models.ForeignKey(Car, on_delete=models.PROTECT, related_name='bookings')
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='bookings')
     guarantor = models.ForeignKey(Guarantor, on_delete=models.SET_NULL, null=True, blank=True)
-    driver = models.ForeignKey('staff.Staff', on_delete=models.SET_NULL, null=True, blank=True, 
+    driver = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True, 
                           limit_choices_to={'role': 'driver'},  # Optional: filter to drivers only
                           related_name='assigned_bookings')
     
@@ -53,9 +54,12 @@ class Booking(models.Model):
     is_self_drive = models.BooleanField(default=False)
     driver_license_id = models.CharField(max_length=30, blank=True)
     driver_license_class = models.CharField(max_length=10, blank=True)
+    driver_license_issue_date = models.DateField(null=True, blank=True)
+    driver_license_expiry_date = models.DateField(null=True, blank=True)
     
     # Financial
     daily_rate = models.DecimalField(max_digits=8, decimal_places=2)
+    discount = models.DecimalField(max_digits=8, decimal_places=2)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

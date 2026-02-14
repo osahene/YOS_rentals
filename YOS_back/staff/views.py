@@ -264,7 +264,7 @@ class StaffViewSet(viewsets.ModelViewSet):
             })
         
         return Response(sorted(performance_data, key=lambda x: x['completed_bookings'], reverse=True))
-
+    
 class SalaryPaymentViewSet(viewsets.ModelViewSet):
     queryset = SalaryPayment.objects.all()
     serializer_class = SalaryPaymentSerializer
@@ -359,3 +359,19 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
             'errors': errors,
             'results': results
         })
+        
+    @action(detail=True, methods=['post'])
+    def send_email(self, request, pk=None):
+        payment = self.get_object()
+        subject = f"Salary Payment - {payment.month.strftime('%B %Y')}"
+        message = f"Dear {payment.staff.name},\n\nYour salary of {payment.net_salary} has been paid."
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [payment.staff.email])
+        return Response({'status': 'email sent'})
+
+    @action(detail=True, methods=['post'])
+    def send_sms(self, request, pk=None):
+        payment = self.get_object()
+        # Integrate with SMS provider (Twilio, etc.)
+        # message = f"Your salary of {payment.net_salary} has been paid."
+        # send_sms(payment.staff.phone, message)
+        return Response({'status': 'sms sent'})

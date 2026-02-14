@@ -11,7 +11,7 @@ from .models import Customer, Guarantor
 from .serializers import (
     CustomerListSerializer, CustomerDetailSerializer, 
     CreateCustomerSerializer, UpdateCustomerSerializer,
-    GuarantorSerializer
+    GuarantorSerializer, BookingWithGuarantorSerializer
 )
 from bookings.models import Booking
 
@@ -174,6 +174,14 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'recipients': len(customer_ids),
             'type': message_type
         })
+        
+    @action(detail=True, methods=['get'], url_path='bookings-with-guarantor')
+    def bookings_with_guarantor(self, request, pk=None):
+        """Return all bookings for a customer with guarantor details."""
+        customer = self.get_object()
+        bookings = Booking.objects.filter(customer=customer).select_related('guarantor').order_by('-start_date')
+        serializer = BookingWithGuarantorSerializer(bookings, many=True)
+        return Response(serializer.data)
 
 class GuarantorViewSet(viewsets.ModelViewSet):
     """

@@ -117,3 +117,24 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
             'address_country', 'preferred_vehicle_type',
             'communication_preferences', 'status', 'loyalty_tier'
         ]
+        
+class BookingWithGuarantorSerializer(serializers.ModelSerializer):
+    customer_first_name = serializers.SerializerMethodField()
+    customer_last_name = serializers.SerializerMethodField()
+    guarantor_name = serializers.SerializerMethodField()
+    guarantor_phone = serializers.SerializerMethodField()
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+
+    class Meta:
+        from bookings.models import Booking
+        model = Booking
+        fields = ['id', 'start_date', 'end_date', 'guarantor_name', 'guarantor_phone']
+
+    def get_guarantor_name(self, obj):
+        if obj.guarantor:
+            return f"{obj.guarantor.first_name} {obj.guarantor.last_name}"
+        return "N/A"
+
+    def get_guarantor_phone(self, obj):
+        return obj.guarantor.phone if obj.guarantor else "N/A"

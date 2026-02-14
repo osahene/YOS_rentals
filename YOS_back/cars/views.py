@@ -186,6 +186,93 @@ class CarViewSet(viewsets.ModelViewSet):
         if revenue > 0:
             return ((revenue - expenses) / revenue) * 100
         return 0
+    
+    @action(detail=True, methods=['patch'], url_path='payload')
+    def update_with_event(self, request, pk=None):
+        """Handle event payload from frontend (maintenance, insurance, accident, etc.)"""
+        car = self.get_object()
+        payload = request.data
+
+        # Extract common fields
+        event_type = payload.get('type')
+        title = payload.get('title')
+        description = payload.get('description', '')
+        date = payload.get('date')
+        amount = payload.get('amount', 0)
+
+        # Create base Event record
+        event = Event.objects.create(
+            car=car,
+            event_type=event_type,
+            title=title,
+            description=description,
+            created_by=request.user if request.user.is_authenticated else None,
+            extra_data=payload
+        )
+
+        # Handle specific event types
+        if event_type == 'maintenance':
+            MaintenanceRecord.objects.create(
+                car=car,
+                type='routine',  # you can add a subtype field in payload if needed
+                title=title,
+                description=description,
+                start_date=date,
+                estimated_end_date=payload.get('returnDate'),
+                cost=amount,
+                garage=payload.get('garage', ''),
+                status='scheduled',
+                created_by=request.user if request.user.is_authenticated else None
+            )
+            # Update car status to maintenance
+            if car.status != 'maintenance':
+                car.status = 'maintenance'
+                car.save()
+
+        elif event_type == 'insurance':
+            InsurancePolicy.objects.create(
+                car=car,
+                policy_number=payload.get('policyNumber'),
+                insurance_company=payload.get('provider'),
+                policy_type=payload.get('type', 'comprehensive'),  # fallback
+                insurance_amount=amount,
+                start_date=payload.get('startDate'),
+                end_date=payload.get('endDate'),
+                is_current=True,
+                created_by=request.user if request.user.is_authenticated else None
+            )
+            # Car status may remain unchanged unless insurance expired
+
+        elif event_type == 'accident':
+            severity = payload.get('severity')
+            if severity == 'total':
+                car.status = 'retired'
+                car.save()
+            else:
+                # Create maintenance record for repairs
+                MaintenanceRecord.objects.create(
+                    car=car,
+                    type='accident',
+                    title=title,
+                    description=description,
+                    start_date=date,
+                    estimated_end_date=payload.get('returnDate'),
+                    cost=amount,
+                    garage=payload.get('garage', ''),
+                    status='scheduled',
+                    created_by=request.user if request.user.is_authenticated else None
+                )
+                if car.status != 'maintenance':
+                    car.status = 'maintenance'
+                    car.save()
+
+        elif event_type == 'revenue':
+            # Just log the event; no further action
+            pass
+
+        # Return updated car data so frontend can refresh
+        serializer = CarDetailSerializer(car, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

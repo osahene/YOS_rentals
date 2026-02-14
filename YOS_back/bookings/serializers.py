@@ -18,6 +18,10 @@ class BookingSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    pickup_location = serializers.CharField(read_only=True)
+    dropoff_location = serializers.CharField(read_only=True)
+    daily_rate = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
+    payment_method = serializers.CharField(read_only=True)
     
     class Meta:
         model = Booking
@@ -26,7 +30,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'start_date', 'end_date', 'duration_days', 'total_amount', 
             'amount_paid', 'status', 'status_display', 'payment_method',
             'payment_method_display', 'payment_status', 'payment_status_display',
-            'created_at', 'is_self_drive', 'guarantor', 'guarantor_name'
+            'created_at', 'is_self_drive', 'guarantor', 'guarantor_name',
+            'pickup_location', 'dropoff_location', 'daily_rate', 'payment_method',
         ]
         read_only_fields = ['created_at', 'updated_at']
         
@@ -62,9 +67,10 @@ class CreateBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'car', 'customer', 'start_date', 'end_date', 'pickup_location',
+            'car', 'customer', 'start_date', 'daily_rate', 'discount', 'end_date', 'pickup_location',
             'dropoff_location', 'special_requests', 'driver', 'is_self_drive',
-            'driver_license_id', 'driver_license_class', 'payment_method',
+            'driver_license_id', 'driver_license_class', 'driver_license_issue_date', 'driver_license_expiry_date',
+            'payment_method', 
             'customer_data', 'guarantor_data',
             'mobile_money_provider', 'mobile_money_number',
             'pay_in_slip_bank', 'pay_in_slip_branch', 'pay_in_slip_payee',

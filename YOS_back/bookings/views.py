@@ -358,3 +358,29 @@ class BookingViewSet(viewsets.ModelViewSet):
         
         serializer = BookingSerializer(queryset[:int(limit)], many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def send_email_receipt(self, request, pk=None):
+        """Send booking receipt via email"""
+        booking = self.get_object()
+        receipt = self.generate_receipt(booking)
+        subject = f"Booking Receipt - {booking.id}"
+        message = f"Dear {booking.customer.first_name},\n\nYour receipt is attached. Total: {receipt['final_amount']}"
+        # In production, generate a PDF and attach it.
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.customer.email],
+            fail_silently=False,
+        )
+        return Response({'status': 'email sent'})
+
+    @action(detail=True, methods=['post'])
+    def send_sms_receipt(self, request, pk=None):
+        """Send booking receipt via SMS (placeholder)"""
+        booking = self.get_object()
+        # Integrate with SMS provider (e.g., Twilio)
+        # message = f"Receipt for booking {booking.id}. Total: {booking.total_amount}"
+        # send_sms(booking.customer.phone, message)
+        return Response({'status': 'sms sent'})
