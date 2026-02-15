@@ -201,9 +201,11 @@ CSRF_COOKIE_SECURE = False  # Set to True in production
 CSRF_COOKIE_SAMESITE = "Lax"  # Changed to Lax
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',  # Next.js default port
+    'http://localhost:3001',  # Next.js default port
     'http://localhost:9000',
     'https://github.com',
 ]
+
 
 # JWT/Auth Cookies
 JWT_AUTH_COOKIE = 'access_token'
@@ -236,6 +238,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_HEADERS = [
+    "access-control-allow-origin",
     "accept",
     "accept-encoding",
     "authorization",
@@ -308,7 +311,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 # ===== Other Settings =====
-MNOFTIFY_VOICE = os.environ.get("MNOFTIFY_VOICE")
+MNOFTIFY_SMS = os.environ.get("MNOFTIFY_SMS")
 FRONTEND_API_KEY = os.environ.get("FRONTEND_API_KEY")
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY")

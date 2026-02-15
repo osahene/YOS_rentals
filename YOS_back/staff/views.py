@@ -1,3 +1,4 @@
+import requests
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,6 +8,12 @@ from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
 import calendar
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .models import Staff, SalaryPayment
 from .serializers import (
@@ -362,16 +369,86 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
         
     @action(detail=True, methods=['post'])
     def send_email(self, request, pk=None):
+        """Send a professional HTML email with salary details."""
         payment = self.get_object()
-        subject = f"Salary Payment - {payment.month.strftime('%B %Y')}"
-        message = f"Dear {payment.staff.name},\n\nYour salary of {payment.net_salary} has been paid."
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [payment.staff.email])
+        staff = payment.staff
+
+        if not staff.email:
+            return Response({'error': 'Staff has no email address'}, status=400)
+
+        subject = f"Salary Payment Confirmation – {payment.month.strftime('%B %Y')}"
+
+        # Prepare context for the email template
+        context = {
+            'staff_name': staff.name,
+            'month': payment.month.strftime('%B %Y'),
+            'basic_salary': payment.basic_salary,
+            'overtime': payment.overtime or 0,
+            'bonuses': payment.bonuses or 0,
+            'deductions': payment.deductions or 0,
+            'net_salary': payment.net_salary,
+            'payment_date': payment.payment_date.strftime('%d %B %Y'),
+            'payment_method': payment.get_payment_method_display(),
+            'company_name': 'YOS Car Rentals',  # customize
+        }
+
+        # Render HTML email
+        html_message = render_to_string('salary_payment.html', context)
+        plain_message = strip_tags(html_message)  # fallback plain text
+
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[staff.email],
+        )
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+
         return Response({'status': 'email sent'})
 
     @action(detail=True, methods=['post'])
     def send_sms(self, request, pk=None):
+        """Send a professional SMS via mNotify."""
         payment = self.get_object()
-        # Integrate with SMS provider (Twilio, etc.)
-        # message = f"Your salary of {payment.net_salary} has been paid."
-        # send_sms(payment.staff.phone, message)
-        return Response({'status': 'sms sent'})
+        staff = payment.staff
+        phone = staff.phone
+
+        if not phone:
+            return Response({'error': 'Staff has no phone number'}, status=400)
+
+        # if phone.startswith('0'):
+        #     phone = '233' + phone[1:]  # convert 024... to 23324...
+
+        month_str = payment.month.strftime('%B %Y')
+        amount = f"GHS {payment.net_salary:,.2f}"
+        message = (
+            f"Dear {staff.name},\n Your salary of {amount} for {month_str} has been processed. "
+            f"Payment method: {payment.get_payment_method_display()}. "
+            f"Thank you for your dedication. \n YOS Car Rentals"
+        )
+
+        # Prepare mNotify API request
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOTIFY_API_KEY
+        url = f"{endpoint}?key={api_key}"
+
+        payload = {
+            "recipient": [phone],
+            "sender": settings.MNOTIFY_SENDER_ID or "mNotify",
+            "message": message,
+            "is_schedule": "false",
+            "schedule_date": ""
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                return Response({'status': 'sms sent'})
+            else:
+                return Response(
+                    {'error': 'SMS sending failed', 'details': response.text},
+                    status=500
+                )
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

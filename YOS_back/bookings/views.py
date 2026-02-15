@@ -1,3 +1,8 @@
+import requests
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -361,26 +366,134 @@ class BookingViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def send_email_receipt(self, request, pk=None):
-        """Send booking receipt via email"""
+        """Send a detailed HTML receipt via email."""
         booking = self.get_object()
-        receipt = self.generate_receipt(booking)
+        customer = booking.customer
+
+        if not customer or not customer.email:
+            return Response({'error': 'Customer has no email address'}, status=400)
+
+        # Prepare context
+        context = {
+            'customer_name': f"{customer.first_name} {customer.last_name}",
+            'booking_id': str(booking.id),
+            'car_details': f"{booking.car.year} {booking.car.make} {booking.car.model} ({booking.car.license_plate})",
+            'booking_dates': f"{booking.start_date} to {booking.end_date}",
+            'duration': booking.duration_days,
+            'pickup_location': booking.pickup_location or 'N/A',
+            'dropoff_location': booking.dropoff_location or 'N/A',
+            'daily_rate': booking.daily_rate,
+            'discount': booking.discount or 0,
+            'total_amount': booking.total_amount,
+            'payment_method': booking.get_payment_method_display(),
+            'payment_status': booking.get_payment_status_display(),
+            'company_name': 'YOS Car Rentals',
+        }
+
         subject = f"Booking Receipt - {booking.id}"
-        message = f"Dear {booking.customer.first_name},\n\nYour receipt is attached. Total: {receipt['final_amount']}"
-        # In production, generate a PDF and attach it.
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [booking.customer.email],
-            fail_silently=False,
+        html_message = render_to_string('emails/booking_receipt.html', context)
+        plain_message = strip_tags(html_message)
+
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[customer.email],
         )
-        return Response({'status': 'email sent'})
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+
+        return Response({'status': 'receipt email sent'})
 
     @action(detail=True, methods=['post'])
     def send_sms_receipt(self, request, pk=None):
-        """Send booking receipt via SMS (placeholder)"""
+        """Send a concise receipt SMS."""
         booking = self.get_object()
-        # Integrate with SMS provider (e.g., Twilio)
-        # message = f"Receipt for booking {booking.id}. Total: {booking.total_amount}"
-        # send_sms(booking.customer.phone, message)
-        return Response({'status': 'sms sent'})
+        customer = booking.customer
+
+        if not customer or not customer.phone:
+            return Response({'error': 'Customer has no phone number'}, status=400)
+
+        phone = customer.phone
+        if phone.startswith('0'):
+            phone = '233' + phone[1:]
+
+        message = (
+            f"Receipt for booking {str(booking.id)[:8].upper()}: "
+            f"GHS {booking.total_amount:.2f} paid via {booking.get_payment_method_display()}. "
+            f"Vehicle: {booking.car.make} {booking.car.model}. Thank you!"
+        )
+
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOTIFY_API_KEY
+        url = f"{endpoint}?key={api_key}"
+
+        payload = {
+            "recipient": [phone],
+            "sender": settings.MNOTIFY_SENDER_ID or "mNotify",
+            "message": message,
+            "is_schedule": "false",
+            "schedule_date": ""
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                return Response({'status': 'receipt SMS sent'})
+            else:
+                return Response(
+                    {'error': 'SMS sending failed', 'details': response.text},
+                    status=500
+                )
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+    
+    
+    @action(detail=True, methods=['post'])
+    def send_confirmation_sms(self, request, pk=None):
+        """Send a booking confirmation SMS via mNotify."""
+        booking = self.get_object()
+        customer = booking.customer
+        print('booking', booking)
+
+        if not customer or not customer.phone:
+            return Response({'error': 'Customer has no phone number'}, status=400)
+
+        phone = customer.phone
+        # Convert local format (0XX...) to international (233XX...)
+        if phone.startswith('0'):
+            phone = '233' + phone[1:]
+
+        # Construct a professional message
+        start = booking.start_date.strftime('%d %b %Y')
+        end = booking.end_date.strftime('%d %b %Y')
+        message = (
+            f"Dear {customer.first_name}, your booking for {booking.car.make} {booking.car.model} "
+            f"from {start} to {end} has been confirmed. Total: GHS {booking.total_amount:.2f}. "
+            f"Pickup: {booking.pickup_location or 'our office'}. Thank you for choosing us!"
+        )
+
+        # mNotify API call
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOTIFY_API_KEY
+        url = f"{endpoint}?key={api_key}"
+
+        payload = {
+            "recipient": [phone],
+            "sender": settings.MNOTIFY_SENDER_ID or "mNotify",
+            "message": message,
+            "is_schedule": "false",
+            "schedule_date": ""
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                return Response({'status': 'confirmation SMS sent'})
+            else:
+                return Response(
+                    {'error': 'SMS sending failed', 'details': response.text},
+                    status=500
+                )
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

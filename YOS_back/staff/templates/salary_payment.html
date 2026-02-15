@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>YOS Car Rentals - Salary Payment</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { background-color: #0047ab; color: white; padding: 15px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table th { background-color: #f4f4f4; }
+        .total { font-size: 1.2em; font-weight: bold; color: #0047ab; }
+        .footer { margin-top: 30px; font-size: 0.9em; color: #777; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+         {% load static %}
+        <div class="header">
+            <h2>Salary Payment Confirmation</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ staff_name }},</p>
+            <p>We are pleased to inform you that your salary for <strong>{{ month }}</strong> has been successfully processed. Below are the details:</p>
+
+            <table class="table">
+                <tr>
+                    <th>Description</th>
+                    <th>Amount (GHS)</th>
+                </tr>
+                <tr>
+                    <td>Basic Salary</td>
+                    <td>{{ basic_salary|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Overtime</td>
+                    <td>{{ overtime|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Bonuses</td>
+                    <td>{{ bonuses|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>Deductions</td>
+                    <td>({{ deductions|floatformat:2 }})</td>
+                </tr>
+                <tr class="total">
+                    <td>Net Salary</td>
+                    <td>{{ net_salary|floatformat:2 }}</td>
+                </tr>
+            </table>
+
+            <p><strong>Payment Method:</strong> {{ payment_method }}</p>
+            <p><strong>Payment Date:</strong> {{ payment_date }}</p>
+
+            <p>If you have any questions regarding your salary, please contact the finance department.</p>
+            <p>Thank you for your continued contribution to {{ company_name }}.</p>
+        </div>
+        <div class="footer">
+            &copy; {{ company_name }}. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

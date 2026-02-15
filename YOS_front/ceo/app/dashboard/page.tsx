@@ -3,12 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useThreeJSScene } from "../components/homepage/ThreeJSScene";
 import MetricsGrid from "../components/homepage/MetricsGrid";
 import ChartsSection from "../components/homepage/ChartsSection";
 import RecentBookings from "../components/homepage/Bookings";
 import CarAnalytics from "../components/homepage/Analytics";
-import { Suspense } from "react";
 import { LuUser, LuDollarSign, LuCar, LuCalendar, LuTrendingUp } from "react-icons/lu";
 import apiService from "../utils/APIPaths";
 import type { DashboardData } from "../lib/store/types/dashboard";
@@ -23,7 +21,6 @@ const calculateGrowth = (current: number, previous: number) => {
 
 export default function DashboardPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { ThreeScene } = useThreeJSScene();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +37,10 @@ export default function DashboardPage() {
         setLoading(true);
         setError(null);
         
-        // Using the combined fetch method
         const data = await apiService.fetchDashboardData();
+        console.log(data)
         setDashboardData(data);
-        
-        // You could also fetch previous period data to calculate real growth rates
-        // For now, using static growth rates or you could calculate from trends
+
         if (data.trends && data.trends.length >= 2) {
           const lastMonth = data.trends[data.trends.length - 1];
           const prevMonth = data.trends[data.trends.length - 2];
@@ -62,7 +57,7 @@ export default function DashboardPage() {
         setError(err.response?.data?.message || "Failed to load dashboard data");
         
         // Fallback to mock data if API fails
-        setDashboardData(getMockDashboardData());
+        // setDashboardData(getMockDashboardData());
       } finally {
         setLoading(false);
       }
@@ -170,13 +165,7 @@ export default function DashboardPage() {
 
   return (
     <div ref={containerRef} >
-      {/* Background Three.js Scene */}
-      {/* <div className="fixed inset-0 z-0 opacity-10">
-        <Suspense fallback={null}>
-          <ThreeScene />
-        </Suspense>
-      </div> */}
-
+     
       <div className="relative z-10">
         <header className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h1>
@@ -243,62 +232,62 @@ export default function DashboardPage() {
 }
 
 // Fallback mock data function
-function getMockDashboardData(): DashboardData {
-  return {
-    metrics: {
-      active_customers: 1240,
-      revenue: 87200,
-      available_cars: 45,
-      recent_bookings: 1245,
-    },
-    bookingStatus: {
-      active: 15,
-      pending: 8,
-      completed: 120,
-      cancelled: 12,
-    },
-    carStatus: {
-      Available: 45,
-      Rented: 25,
-      'Under Maintenance': 8,
-      'Insurance Expired': 2,
-    },
-    trends: Array.from({ length: 12 }, (_, i) => ({
-      month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
-      month_full: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] + ' 2024',
-      revenue: 50000 + Math.random() * 50000,
-      bookings: 800 + Math.random() * 400,
-    })),
-    recentBookings: Array.from({ length: 10 }, (_, i) => ({
-      id: `B-2024-${String(i + 1).padStart(3, '0')}`,
-      customer: ['John Doe', 'Sarah Lee', 'Mark Smith', 'David Kim', 'Emma Wilson'][i % 5],
-      vehicle: ['Tesla Model 3', 'Ford Explorer', 'BMW 5 Series', 'Toyota Camry', 'Honda Civic'][i % 5],
-      pickup: '21 Sep 2024',
-      return: '25 Sep 2024',
-      location: ['Dhaka Airport', 'Bawari', 'Oakthan', 'Diaumondi', 'Mirpur'][i % 5],
-      status: ['active', 'pending', 'completed', 'cancelled', 'active'][i % 5] as any,
-      payment_status: ['paid', 'pending', 'paid', 'cancelled', 'paid'][i % 5],
-      total_amount: 150 + Math.random() * 350,
-    })),
-    carDistribution: [
-      { name: 'Petrol', value: 45, count: 45, color: '#3B82F6' },
-      { name: 'Diesel', value: 25, count: 25, color: '#8B5CF6' },
-      { name: 'Electric', value: 15, count: 15, color: '#10B981' },
-      { name: 'Hybrid', value: 15, count: 15, color: '#EF4444' },
-    ],
-    dailyBookings: Array.from({ length: 7 }, (_, i) => ({
-      day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
-      full_day: `2024-09-${String(14 + i).padStart(2, '0')}`,
-      bookings: 30 + Math.random() * 40,
-    })),
-    topCars: Array.from({ length: 5 }, (_, i) => ({
-      id: `car-${i + 1}`,
-      name: ['Tesla Model 3', 'BMW 5 Series', 'Ford Explorer', 'Toyota Camry', 'Honda Civic'][i],
-      license_plate: [`ABC-${100 + i}`, `XYZ-${200 + i}`, `DEF-${300 + i}`, `GHI-${400 + i}`, `JKL-${500 + i}`][i],
-      revenue: 15000 + Math.random() * 20000,
-      bookings: 45 + Math.random() * 30,
-      status: ['Available', 'Rented', 'Available', 'Under Maintenance', 'Available'][i],
-      color: ['#3B82F6', '#8B5CF6', '#10B981', '#EF4444', '#F59E0B'][i],
-    })),
-  };
-}
+// function getMockDashboardData(): DashboardData {
+//   return {
+//     metrics: {
+//       active_customers: 1240,
+//       revenue: 87200,
+//       available_cars: 45,
+//       recent_bookings: 1245,
+//     },
+//     bookingStatus: {
+//       active: 15,
+//       pending: 8,
+//       completed: 120,
+//       cancelled: 12,
+//     },
+//     carStatus: {
+//       Available: 45,
+//       Rented: 25,
+//       'Under Maintenance': 8,
+//       'Insurance Expired': 2,
+//     },
+//     trends: Array.from({ length: 12 }, (_, i) => ({
+//       month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
+//       month_full: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] + ' 2024',
+//       revenue: 50000 + Math.random() * 50000,
+//       bookings: 800 + Math.random() * 400,
+//     })),
+//     recentBookings: Array.from({ length: 10 }, (_, i) => ({
+//       id: `B-2024-${String(i + 1).padStart(3, '0')}`,
+//       customer: ['John Doe', 'Sarah Lee', 'Mark Smith', 'David Kim', 'Emma Wilson'][i % 5],
+//       vehicle: ['Tesla Model 3', 'Ford Explorer', 'BMW 5 Series', 'Toyota Camry', 'Honda Civic'][i % 5],
+//       pickup: '21 Sep 2024',
+//       return: '25 Sep 2024',
+//       location: ['Dhaka Airport', 'Bawari', 'Oakthan', 'Diaumondi', 'Mirpur'][i % 5],
+//       status: ['active', 'pending', 'completed', 'cancelled', 'active'][i % 5] as any,
+//       payment_status: ['paid', 'pending', 'paid', 'cancelled', 'paid'][i % 5],
+//       total_amount: 150 + Math.random() * 350,
+//     })),
+//     carDistribution: [
+//       { name: 'Petrol', value: 45, count: 45, color: '#3B82F6' },
+//       { name: 'Diesel', value: 25, count: 25, color: '#8B5CF6' },
+//       { name: 'Electric', value: 15, count: 15, color: '#10B981' },
+//       { name: 'Hybrid', value: 15, count: 15, color: '#EF4444' },
+//     ],
+//     dailyBookings: Array.from({ length: 7 }, (_, i) => ({
+//       day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+//       full_day: `2024-09-${String(14 + i).padStart(2, '0')}`,
+//       bookings: 30 + Math.random() * 40,
+//     })),
+//     topCars: Array.from({ length: 5 }, (_, i) => ({
+//       id: `car-${i + 1}`,
+//       name: ['Tesla Model 3', 'BMW 5 Series', 'Ford Explorer', 'Toyota Camry', 'Honda Civic'][i],
+//       license_plate: [`ABC-${100 + i}`, `XYZ-${200 + i}`, `DEF-${300 + i}`, `GHI-${400 + i}`, `JKL-${500 + i}`][i],
+//       revenue: 15000 + Math.random() * 20000,
+//       bookings: 45 + Math.random() * 30,
+//       status: ['Available', 'Rented', 'Available', 'Under Maintenance', 'Available'][i],
+//       color: ['#3B82F6', '#8B5CF6', '#10B981', '#EF4444', '#F59E0B'][i],
+//     })),
+//   };
+// }

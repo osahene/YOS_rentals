@@ -6,7 +6,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 from collections import OrderedDict
-
+import calendar
+from datetime import date
 from .utils import aggregate_total_days_from_bookings
 from cars.models import Car
 from bookings.models import Booking
@@ -413,8 +414,11 @@ class ComprehensiveFinancialReportAPI(APIView):
             quarter = (timezone.now().month - 1) // 3 + 1
         quarter = int(quarter)
         start_month = (quarter - 1) * 3 + 1
-        start_date = datetime(int(year), start_month, 1).date()
-        end_date = (datetime(int(year), start_month + 3, 1) - timedelta(days=1)).date()
+        end_month = start_month + 2
+        year = int(year)
+        start_date = date(year, start_month, 1)
+        last_day = calendar.monthrange(year, end_month)[1]
+        end_date = date(year, end_month, last_day)
         return start_date, end_date
     
     # Additional calculation methods
@@ -590,28 +594,38 @@ class ComprehensiveFinancialReportAPI(APIView):
         return (repeat_customers / total_customers * 100) if total_customers > 0 else 0
     
     def get_customer_analysis(self, start_date, end_date):
-        customers = Customer.objects.filter(
-            bookings__created_at__range=[start_date, end_date]
-        ).distinct()
-        
-             
+        """
+        Return customer analysis using DB annotations.
+        Uses created_at__date__range to avoid timezone naive warnings
+        when comparing dates to DateTimeFields.
+        """
+        # booking filter for the period (use date range to avoid naive datetime warnings)
+        booking_filter = Q(bookings__created_at__date__range=[start_date, end_date])
+
+        # annotate customers with booking counts and completed booking counts (in the period)
+        customers_qs = Customer.objects.annotate(
+            total_bookings=Count('bookings', filter=booking_filter),
+            completed_bookings=Count('bookings', filter=booking_filter & Q(bookings__status='completed'))
+        ).filter(total_bookings__gt=0)  # only customers who had bookings in the period
+
         loyalty_segments = {
-            'new': customers.filter(total_bookings=1).count(),
-            'returning': customers.filter(total_bookings__gt=1).count(),
-            'loyal': customers.filter(total_bookings__gt=3).count()
+            'new': customers_qs.filter(total_bookings=1).count(),
+            'returning': customers_qs.filter(total_bookings__gt=1).count(),
+            'loyal': customers_qs.filter(total_bookings__gt=3).count()
         }
-        
+
+        avg_bookings = customers_qs.aggregate(avg=Avg('total_bookings'))['avg'] or 0
+
         return {
-            'total_customers': customers.count(),
+            'total_customers': customers_qs.count(),
             'loyalty_segments': loyalty_segments,
-            'average_bookings_per_customer': customers.aggregate(
-                avg=Avg('bookings__count')
-            )['avg'] or 0,
+            'average_bookings_per_customer': float(avg_bookings),
             'top_customers': self.get_top_customers(start_date, end_date)
         }
+        
     
     def get_top_customers(self, start_date, end_date):
-        booking_filter = Q(bookings__created_at__range=[start_date, end_date]) & Q(bookings__status='completed')
+        booking_filter = Q(bookings__created_at__date__range=[start_date, end_date]) & Q(bookings__status='completed')
 
         top_customers = Customer.objects.annotate(
             total_spent=Sum('bookings__total_amount', filter=booking_filter),

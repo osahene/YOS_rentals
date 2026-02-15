@@ -7,7 +7,7 @@ import {
   BarChart3,
   Download,
   Calendar,
-  DollarSign,
+  ReceiptCent,
   Car,
   Users,
   Shield,
@@ -38,9 +38,8 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { format } from "date-fns";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { useReactToPrint } from "react-to-print";
+
 import * as XLSX from "xlsx";
 
 // Types
@@ -136,44 +135,12 @@ export default function FinancialReportPage() {
   }, [fetchFinancialReport]);
 
   // Export functions
-  const exportToPDF = async () => {
-    if (!reportRef.current) return;
-    setExporting(true);
+  const handlePrint = useReactToPrint({
+    contentRef: reportRef,
+    documentTitle: `Financial-Report-${report?.report_id || Date.now()}`,
+    onAfterPrint: () => console.log("Report printed successfully"),
+  });
 
-    try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 190;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 10;
-
-      pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(`Financial-Report-${report?.report_id || Date.now()}.pdf`);
-    } catch (error) {
-      console.error("Error exporting PDF:", error);
-      alert("Failed to export PDF. Please try again.");
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const exportToExcel = () => {
     if (!report) return;
@@ -318,7 +285,7 @@ export default function FinancialReportPage() {
 
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={exportToPDF}
+                onClick={() => handlePrint()}
                 disabled={exporting || !report}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
@@ -404,14 +371,22 @@ export default function FinancialReportPage() {
       {/* Main Content */}
       <div className="px-6 py-8">
         {report ? (
-          <div className="max-w-7xl mx-auto">
+          <div ref={reportRef} className="max-w-7xl mx-auto">
             {/* Report Header */}
-            <div className="bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-8 text-white">
+            <div className=" bg-linear-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-8 text-white">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
+                <div className="text-center">
                   <h2 className="text-3xl font-bold mb-2">YOS Car Rentals</h2>
+                  <span className="print-only">
+                    <p className=" mt-2">
+                      Location: Opposite Shell filling station, Mango Down, Patasi, Kumasi, Ghana
+                    </p>
+                    <p className="">
+                      Phone: +233 54 621 3027 | +233 24 445 5757 | Email: info@yoscarrentals.com
+                    </p>
+                  </span>
                   <p className="text-blue-100 mb-4">
-                    Comprehensive Financial Report
+                    Financial Report
                   </p>
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
@@ -440,11 +415,11 @@ export default function FinancialReportPage() {
             </div>
 
             {/* Key Metrics Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="screen-only grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-4">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <ReceiptCent className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <span className={`text-sm font-medium ${getTrendColor(report.executive_summary.key_highlights.profit_margin)}`}>
                     {getGrowthIcon(report.executive_summary.key_highlights.profit_margin)}
@@ -647,25 +622,22 @@ export default function FinancialReportPage() {
                     </div>
 
                     {/* Net Income */}
-                    <div className={`rounded-xl p-6 ${
-                      report.income_statement.net_income >= 0
-                        ? "bg-green-50 dark:bg-green-900/20"
-                        : "bg-red-50 dark:bg-red-900/20"
-                    }`}>
+                    <div className={`rounded-xl p-6 ${report.income_statement.net_income >= 0
+                      ? "bg-green-50 dark:bg-green-900/20"
+                      : "bg-red-50 dark:bg-red-900/20"
+                      }`}>
                       <h4 className="font-bold text-lg mb-4">Net Income</h4>
                       <div className="text-center py-6">
-                        <div className={`text-4xl font-bold mb-2 ${
-                          report.income_statement.net_income >= 0
-                            ? "text-green-700 dark:text-green-400"
-                            : "text-red-700 dark:text-red-400"
-                        }`}>
+                        <div className={`text-4xl font-bold mb-2 ${report.income_statement.net_income >= 0
+                          ? "text-green-700 dark:text-green-400"
+                          : "text-red-700 dark:text-red-400"
+                          }`}>
                           ₵{formatCurrency(report.income_statement.net_income)}
                         </div>
-                        <div className={`text-sm font-medium px-3 py-1 rounded-full inline-block ${
-                          report.income_statement.net_income >= 0
-                            ? "bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-300"
-                            : "bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-300"
-                        }`}>
+                        <div className={`text-sm font-medium px-3 py-1 rounded-full inline-block ${report.income_statement.net_income >= 0
+                          ? "bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-300"
+                          : "bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-300"
+                          }`}>
                           {report.income_statement.net_income >= 0 ? "PROFIT" : "LOSS"}
                         </div>
                       </div>
@@ -772,12 +744,11 @@ export default function FinancialReportPage() {
                               <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
                                 {name.replace("_", " ")}
                               </span>
-                              <span className={`font-medium ${
-                                typeof value === "number" && value > 0
-                                  ? "text-green-600"
-                                  : "text-gray-600"
-                              }`}>
-                                {typeof value === "number" 
+                              <span className={`font-medium ${typeof value === "number" && value > 0
+                                ? "text-green-600"
+                                : "text-gray-600"
+                                }`}>
+                                {typeof value === "number"
                                   ? value.toFixed(2) + (name.includes("ratio") || name.includes("margin") ? "%" : "")
                                   : value}
                               </span>
@@ -827,9 +798,8 @@ export default function FinancialReportPage() {
                     {report.vehicle_performance.map((vehicle, index) => (
                       <tr
                         key={vehicle.vehicle_id}
-                        className={`border-b border-gray-100 dark:border-gray-700 ${
-                          index % 2 === 0 ? "bg-gray-50/50 dark:bg-gray-800/50" : ""
-                        }`}
+                        className={`border-b border-gray-100 dark:border-gray-700 ${index % 2 === 0 ? "bg-gray-50/50 dark:bg-gray-800/50" : ""
+                          }`}
                       >
                         <td className="py-3 px-4">
                           <div className="font-medium">
@@ -951,13 +921,12 @@ export default function FinancialReportPage() {
                               <span className="font-medium text-gray-800 dark:text-white">
                                 {risk.risk}
                               </span>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                risk.level === 'High' 
-                                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                  : risk.level === 'Medium'
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${risk.level === 'High'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : risk.level === 'Medium'
                                   ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                                   : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              }`}>
+                                }`}>
                                 {risk.level}
                               </span>
                             </div>
@@ -974,11 +943,19 @@ export default function FinancialReportPage() {
             </div>
 
             {/* Report Footer */}
-            <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-              <p>
-                This report has been prepared in accordance with generally accepted accounting principles.
-                The information contained herein is confidential and intended for authorized recipients only.
-              </p>
+            <div className="print-only mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="justify-between flex">
+                <span>
+                  <div className="w-64 border-b-2 border-dotted border-gray-500 pt-10"></div>
+                  <p className="text-gray-600 mt-2">Chief Executive office</p>
+                  <p className="text-gray-600 mt-2">Dennis Oduro Akomeah</p>
+                </span>
+                <span>
+                  <div className="w-64 border-b-2 border-dotted border-gray-500 pt-10"></div>
+                  <p className="text-gray-600 mt-2">Finance Officer</p>
+                  {/* <div className="w-64 border-b-2 border-dotted border-gray-500 pt-10"></div> */}
+                </span>
+              </div>
               <p className="mt-2">
                 Report ID: {report.report_id} | Generated: {new Date(report.generated_at).toLocaleString()}
               </p>
@@ -997,22 +974,18 @@ export default function FinancialReportPage() {
         )}
       </div>
 
-      {/* Print Section (Hidden for PDF export) */}
+      {/* Print Section (Hidden for PDF export)
       <div ref={reportRef} className="hidden">
-        {/* This div contains the report for PDF export */}
         {report && (
           <div className="p-8 bg-white">
-            {/* PDF-specific content layout */}
             <div style={{ fontFamily: "Arial, sans-serif", fontSize: "11px" }}>
-              {/* PDF content would be structured differently for print */}
               <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>
                 YOS Car Rentals - Financial Report
               </h1>
-              {/* ... PDF optimized content ... */}
             </div>
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

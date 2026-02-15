@@ -1,3 +1,6 @@
+import requests
+from django.conf import settings
+import re
 from rest_framework import viewsets, permissions, status, filters as filtre
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -153,27 +156,110 @@ class CustomerViewSet(viewsets.ModelViewSet):
             }
         })
     
-    @action(detail=False, methods=['post'])
-    def send_bulk_message(self, request):
-        """Send bulk message to customers (placeholder for SMS/Email integration)"""
+    @action(detail=False, methods=['post'], url_path='send-bulk-sms')
+    def send_bulk_sms(self, request):
+        """
+        Send a bulk SMS to multiple customers via mNotify.
+        Expects: { "customer_ids": [...], "message": "..." }
+        """
         customer_ids = request.data.get('customer_ids', [])
-        message = request.data.get('message', '')
-        message_type = request.data.get('type', 'sms')
-        
+        message = request.data.get('message', '').strip()
+
         if not customer_ids:
-            customers = Customer.objects.filter(communication_preferences__contains={message_type: True})
-            customer_ids = [str(c.id) for c in customers]
-        
-        # Here you would integrate with your SMS/Email service
-        # For now, just log the action
-        print(f"Sending {message_type} to {len(customer_ids)} customers:")
-        print(f"Message: {message}")
-        
-        return Response({
-            'status': 'sent',
-            'recipients': len(customer_ids),
-            'type': message_type
-        })
+            return Response({'error': 'No customer IDs provided'}, status=400)
+        if not message:
+            return Response({'error': 'Message cannot be empty'}, status=400)
+
+        customers = Customer.objects.filter(id__in=customer_ids)
+        if not customers.exists():
+            return Response({'error': 'No valid customers found'}, status=404)
+
+        # Collect and format phone numbers
+        phones = []
+        for customer in customers:
+            if customer.phone:
+                phone = customer.phone
+                # Convert local format (0XX...) to international (233XX...)
+                if phone.startswith('0'):
+                    phone = '233' + phone[1:]
+                # Remove any non-digit characters (just in case)
+                phone = re.sub(r'\D', '', phone)
+                phones.append(phone)
+
+        if not phones:
+            return Response({'error': 'No customers with valid phone numbers'}, status=400)
+
+        # mNotify API call
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOTIFY_API_KEY
+        url = f"{endpoint}?key={api_key}"
+
+        payload = {
+            "recipient": phones,
+            "sender": settings.MNOTIFY_SENDER_ID or "mNotify",
+            "message": message,
+            "is_schedule": "false",
+            "schedule_date": ""
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                return Response({
+                    'status': 'SMS sent',
+                    'sent_to': len(phones),
+                    'total_customers': len(customers)
+                })
+            else:
+                return Response(
+                    {'error': 'SMS sending failed', 'details': response.text},
+                    status=500
+                )
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+    @action(detail=True, methods=['post'], url_path='send-sms')
+    def send_sms(self, request, pk=None):
+        """
+        Send a single SMS to one customer.
+        Expects: { "message": "..." }
+        """
+        customer = self.get_object()
+        message = request.data.get('message', '').strip()
+
+        if not message:
+            return Response({'error': 'Message cannot be empty'}, status=400)
+        if not customer.phone:
+            return Response({'error': 'Customer has no phone number'}, status=400)
+
+        phone = customer.phone
+        if phone.startswith('0'):
+            phone = '233' + phone[1:]
+        phone = re.sub(r'\D', '', phone)
+
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOTIFY_API_KEY
+        url = f"{endpoint}?key={api_key}"
+
+        payload = {
+            "recipient": [phone],
+            "sender": getattr(settings, 'MNOTIFY_SENDER_ID', 'mNotify'),
+            "message": message,
+            "is_schedule": "false",
+            "schedule_date": ""
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                return Response({'status': 'SMS sent'})
+            else:
+                return Response(
+                    {'error': 'SMS sending failed', 'details': response.text},
+                    status=500
+                )
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
         
     @action(detail=True, methods=['get'], url_path='bookings-with-guarantor')
     def bookings_with_guarantor(self, request, pk=None):

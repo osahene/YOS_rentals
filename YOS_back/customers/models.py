@@ -77,39 +77,36 @@ class Customer(models.Model):
     
     @property
     def total_bookings(self):
-        """Get total number of bookings for this customer"""
+        """Get total number of bookings for this customer (integer)."""
         from bookings.models import Booking
-        return getattr(Booking.objects.filter(customer=self).count(), 'count', 0)
+        return Booking.objects.filter(customer=self).count()
     
     @property
     def total_spent(self):
-        """Get total amount spent by this customer"""
+        """Total amount spent by this customer (Decimal)."""
         from bookings.models import Booking
         from decimal import Decimal
-        return Booking.objects.filter(
+        total = Booking.objects.filter(
             customer=self,
             status__in=['completed', 'active'],
             payment_status__in=['paid', 'partially_paid']
-        ).aggregate(
-            total=models.Sum('total_amount')
-        )['total'] or Decimal('0')
-    
+        ).aggregate(total=models.Sum('total_amount'))['total'] or Decimal('0')
+        return total
+
     @property
     def last_booking(self):
-        """Get the last booking date"""
+        """Get the last booking datetime or None."""
         from bookings.models import Booking
         last_booking = Booking.objects.filter(customer=self).order_by('-created_at').first()
         return last_booking.created_at if last_booking else None
-    
+
     @property
     def active_bookings(self):
-        """Get active bookings count"""
         from bookings.models import Booking
         return Booking.objects.filter(customer=self, status='active').count()
-    
+
     @property
     def completed_bookings(self):
-        """Get completed bookings count"""
         from bookings.models import Booking
         return Booking.objects.filter(customer=self, status='completed').count()
     

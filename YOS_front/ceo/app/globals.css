@@ -72,3 +72,30 @@
     }
   }
 }
+
+@media screen {
+  .print-only { display: none; }
+}
+@media print {
+  .screen-only { display: none; }
+  .print-only { display: block; }
+}
+
+
+@media print {
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  .print-container {
+    width: 410mm;
+    min-height: 397mm;
+  }
+
+   .page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+}

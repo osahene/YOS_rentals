@@ -18,7 +18,6 @@ import {
 } from "recharts";
 import { LuTrendingUp } from "react-icons/lu";
 import { FiPieChart, FiBarChart, FiTrendingUp } from "react-icons/fi";
-import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 
@@ -57,28 +56,7 @@ interface ChartsSectionProps {
 }
 
 export default function ChartsSection({ revenueData, dailyData, carDistribution, topCars }: ChartsSectionProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (chartRef.current) {
-        gsap.from(chartRef.current.children, {
-          duration: 1,
-          y: 30,
-          opacity: 0,
-          stagger: 0.2,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: chartRef.current,
-            start: "top 70%",
-          },
-        });
-      }
-    }, chartRef);
-
-    return () => ctx.revert();
-  }, []);
-
+ 
   // Calculate revenue growth
   const calculateGrowth = () => {
     if (revenueData.length < 2) return 0;
@@ -89,7 +67,7 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
 
   return (
     <div className="p-6">
-      <div className="space-y-6" ref={chartRef}>
+      <div className="space-y-6">
         {/* Revenue Trend Chart */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
           <div className="flex items-center justify-between mb-6">

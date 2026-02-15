@@ -19,7 +19,7 @@ interface CarAnalyticsProps {
 
 export default function CarAnalytics({ topCar }: CarAnalyticsProps) {
   // Calculate derived metrics
-  const utilizationRate = Math.min(95, Math.round((topCar.bookings / 30) * 100)); // Assuming 30 days
+  const utilizationRate = Math.min(95, Math.round((topCar.bookings / 30) * 100)); 
   const avgRevenuePerBooking = topCar.bookings > 0 ? Math.round(topCar.revenue / topCar.bookings) : 0;
   const rating = 4.2 + (Math.random() * 0.8); // Simulate rating based on performance
   
@@ -37,8 +37,6 @@ export default function CarAnalytics({ topCar }: CarAnalyticsProps) {
     { icon: Wifi, label: "WiFi", active: true },
     { icon: Navigation, label: "Navigation", active: true },
     { icon: Music, label: "Premium Audio", active: true },
-    { icon: Zap, label: "Electric/Hybrid", active: topCar.name.includes('Tesla') || topCar.name.includes('Hybrid') },
-    { icon: Fuel, label: "Fuel Efficient", active: !topCar.name.includes('Explorer') },
     { icon: Users, label: "5 Seats", active: true },
   ].filter(f => f.active).slice(0, 4);
 
@@ -62,7 +60,7 @@ export default function CarAnalytics({ topCar }: CarAnalyticsProps) {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <p className="text-sm text-blue-200">Total Revenue</p>
-            <p className="text-2xl font-bold">${topCar.revenue.toLocaleString()}</p>
+            <p className="text-2xl font-bold">¢{topCar.revenue.toLocaleString()}</p>
           </div>
           <div className="text-right">
             <p className="text-sm text-blue-200">Total Bookings</p>
@@ -87,7 +85,7 @@ export default function CarAnalytics({ topCar }: CarAnalyticsProps) {
           <div>
             <div className="flex justify-between text-sm mb-1">
               <span className="text-blue-200">Avg. Revenue/Booking</span>
-              <span className="font-medium">${avgRevenuePerBooking}</span>
+              <span className="font-medium">¢{avgRevenuePerBooking}</span>
             </div>
             <div className="w-full bg-white/20 rounded-full h-2">
               <div 

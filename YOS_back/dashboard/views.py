@@ -199,7 +199,7 @@ def top_performing_cars(request):
             'name': f"{car.year} {car.make} {car.model}",
             'license_plate': car.license_plate,
             'revenue': float(car.total_revenue) if car.total_revenue else 0,
-            'bookings': getattr(car, 'booking_count', 0),
+            'bookings': getattr(car, 'booking_count', 0) | 0,
             'status': car.status,
             'color': car.color_hex or '#3B82F6',
         })

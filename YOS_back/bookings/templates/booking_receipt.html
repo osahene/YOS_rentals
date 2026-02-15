@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>YOS Car Rentals - Booking Receipt</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { background-color: #0047ab; color: white; padding: 15px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        .table th { background-color: #f4f4f4; }
+        .total { font-size: 1.2em; font-weight: bold; color: #0047ab; }
+        .footer { margin-top: 30px; font-size: 0.9em; color: #777; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+         {% load static %}
+        <div class="header">
+            <h2>Booking Receipt</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ customer_name }},</p>
+            <p>Thank you for choosing {{ company_name }}. Here is your booking receipt:</p>
+
+            <table class="table">
+                <tr><th>Booking ID</th><td>{{ booking_id }}</td></tr>
+                <tr><th>Vehicle</th><td>{{ car_details }}</td></tr>
+                <tr><th>Booking Dates</th><td>{{ booking_dates }}</td></tr>
+                <tr><th>Duration</th><td>{{ duration }} day(s)</td></tr>
+                <tr><th>Pickup Location</th><td>{{ pickup_location }}</td></tr>
+                <tr><th>Drop‑off Location</th><td>{{ dropoff_location }}</td></tr>
+                <tr><th>Daily Rate</th><td>GHS {{ daily_rate|floatformat:2 }}</td></tr>
+                <tr><th>Discount</th><td>GHS {{ discount|floatformat:2 }}</td></tr>
+                <tr><th>Total Amount</th><td>GHS {{ total_amount|floatformat:2 }}</td></tr>
+                <tr><th>Payment Method</th><td>{{ payment_method }}</td></tr>
+                <tr><th>Payment Status</th><td>{{ payment_status }}</td></tr>
+            </table>
+
+            <p>If you have any questions, please contact our support team.</p>
+            <p>We look forward to serving you again!</p>
+        </div>
+        <div class="footer">
+            &copy; {{ company_name }}. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
