@@ -430,7 +430,7 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
 
         # Prepare mNotify API request
         endpoint = 'https://api.mnotify.com/api/sms/quick'
-        api_key = settings.MNOTIFY_API_KEY
+        api_key = settings.MNOFTIFY_SMS
         url = f"{endpoint}?key={api_key}"
 
         payload = {

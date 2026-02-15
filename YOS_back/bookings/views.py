@@ -425,7 +425,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         )
 
         endpoint = 'https://api.mnotify.com/api/sms/quick'
-        api_key = settings.MNOTIFY_API_KEY
+        api_key = settings.MNOFTIFY_SMS
         url = f"{endpoint}?key={api_key}"
 
         payload = {
@@ -475,7 +475,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         # mNotify API call
         endpoint = 'https://api.mnotify.com/api/sms/quick'
-        api_key = settings.MNOTIFY_API_KEY
+        api_key = settings.MNOFTIFY_SMS
         url = f"{endpoint}?key={api_key}"
 
         payload = {
