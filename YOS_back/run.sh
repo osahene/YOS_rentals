@@ -1,9 +1,9 @@
 #!/bin/sh
+# Exit on error
 set -e
 
-python manage.py collectstatic --noinput
-python manage.py makemigrations
-python manage.py migrate
+echo "Applying database migrations..."
+python manage.py migrate --noinput
 
-# Use gunicorn instead of runserver
-gunicorn backend_YOS.wsgi:application --bind 0.0.0.0:8000
+echo "Starting Gunicorn..."
+gunicorn backend_YOS.wsgi:application --bind 0.0.0.0:10000
