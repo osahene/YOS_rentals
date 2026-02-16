@@ -400,7 +400,7 @@ class ComprehensiveFinancialReportAPI(APIView):
     def get_total_assets(self, as_of_date):
         cars = Car.objects.filter(is_active=True)
         total_value = sum(car.current_value or Decimal('0') for car in cars)
-        return total_value + Decimal('50000')  # Add cash and other assets
+        return total_value + Decimal('0')  # Add cash and other assets
     
     def get_month_range(self, year, month):
         if month is None:
@@ -514,7 +514,7 @@ class ComprehensiveFinancialReportAPI(APIView):
         return total
     
     def get_current_assets(self, as_of_date):
-        cash = Decimal('50000')
+        cash = Decimal('0')
         receivables = Booking.objects.filter(
             payment_status='pending',
             status='completed'
@@ -525,14 +525,14 @@ class ComprehensiveFinancialReportAPI(APIView):
         return self.get_total_assets(as_of_date)
     
     def get_current_liabilities(self, as_of_date):
-        payables = Decimal('10000')  # Placeholder
+        payables = Decimal('0')  
         return payables
     
     def get_total_liabilities(self, as_of_date):
         return self.get_current_liabilities(as_of_date)
     
     def get_contributed_capital(self):
-        return Decimal('200000')
+        return Decimal('0')
     
     def get_retained_earnings(self, as_of_date):
         start_of_year = datetime(as_of_date.year, 1, 1).date()
@@ -544,7 +544,7 @@ class ComprehensiveFinancialReportAPI(APIView):
         ).aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
     
     def get_cash_balance(self, date):
-        return Decimal('50000')  # Placeholder
+        return Decimal('0')  # Placeholder
     
     def calculate_customer_growth(self, start_date, end_date):
         new_customers = Customer.objects.filter(
