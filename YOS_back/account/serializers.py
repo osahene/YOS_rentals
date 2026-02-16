@@ -1,6 +1,6 @@
 # accounts/serializers.py
 from rest_framework import serializers
-from django.contrib.auth import authenticate, password_validation, get_user_model
+from django.contrib.auth import authenticate, password_validation
 from django.core.validators import validate_email
 from .models import User, ROLE_CHOICES
 

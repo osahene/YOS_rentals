@@ -51,9 +51,19 @@ class CarPublicSerializer(serializers.ModelSerializer):
     def get_images(self, obj):
         request = self.context.get('request')
         images = obj.images or []
-        if request:
-            return [request.build_absolute_uri(url) for url in images]
-        return images
+        
+        processed_images = []
+        for url in images:
+            # Check if the URL is already absolute (Cloudinary URLs start with http)
+            if url.startswith('http'):
+                processed_images.append(url)
+            elif request:
+                # Fallback for old local images if any exist
+                processed_images.append(request.build_absolute_uri(url))
+            else:
+                processed_images.append(url)
+                
+        return processed_images
 
 class CarDetailSerializer(CarSerializer):
     current_insurance = serializers.SerializerMethodField()
@@ -319,11 +329,6 @@ class CarDetailSerializer(CarSerializer):
         return 0
     
 class CreateCarSerializer(serializers.ModelSerializer):
-    images = serializers.ListField(
-        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
-        required=False,
-        write_only=True
-    )
     features = serializers.JSONField(required=False)
     insurance_company = serializers.CharField(write_only=True)
     policy_number = serializers.CharField(write_only=True)
@@ -331,14 +336,20 @@ class CreateCarSerializer(serializers.ModelSerializer):
     insurance_amount = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True)
     insurance_start_date = serializers.DateField(write_only=True)
     insurance_end_date = serializers.DateField(write_only=True)
-    
+    images = serializers.ListField(
+        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
+        required=False,
+        write_only=True
+    )
+   
+    image_urls = serializers.SerializerMethodField()
     class Meta:
         model = Car
         fields = [
             'make', 'model', 'year', 'color', 'color_hex', 'license_plate',
             'vin', 'purchase_price', 'purchase_date', 'fuel_type',
             'transmission', 'seats', 'mileage', 'features', 'description',
-            'images', 'insurance_company', 'policy_number', 'policy_type',
+            'images', 'image_urls', 'insurance_company', 'policy_number', 'policy_type',
             'insurance_amount', 'insurance_start_date', 'insurance_end_date'
         ]
     

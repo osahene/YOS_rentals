@@ -5,6 +5,9 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from socket import gethostbyname, gethostname
 import dj_database_url
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 load_dotenv()
@@ -71,6 +74,8 @@ INSTALLED_APPS = [
     'django_ratelimit',
     'django_filters',
     'rest_auth',
+    'cloudinary_storage',
+    'cloudinary',
     "account",
     "cars",
     'bookings',
@@ -139,6 +144,23 @@ else:
         }
     }
 
+# DATABASES["default"] = dj_database_url.parse(os.environ.("DATABASE_URL"))
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET')
+}
+
+cloudinary.config( 
+  cloud_name = CLOUDINARY_STORAGE['CLOUD_NAME'], 
+  api_key = CLOUDINARY_STORAGE['API_KEY'], 
+  api_secret = CLOUDINARY_STORAGE['API_SECRET'],
+  secure = True
+)
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

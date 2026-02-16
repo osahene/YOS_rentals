@@ -9,9 +9,7 @@ from datetime import datetime, timedelta
 from bookings.models import Booking
 from cars.models import Car
 from customers.models import Customer
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
+from account.models import User
 
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])

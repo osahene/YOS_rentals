@@ -1,9 +1,7 @@
 from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth import get_user_model
-from account.models import compute_hmac
+from account.models import compute_hmac, User
 from typing import Any
 
-User = get_user_model()
 
 class EncryptedEmailBackend(ModelBackend):
     def authenticate(self, request: Any, username: str | None = None, password: str | None = None, **kwargs: Any) -> Any:
