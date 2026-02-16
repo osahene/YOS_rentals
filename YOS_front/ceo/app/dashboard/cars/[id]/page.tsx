@@ -17,10 +17,8 @@ export default function CarDetailPage() {
       try {
         setLoading(true);
         const response = await apiService.fetchCarById(params.id as string);
-        console.log("Car detail response:", response.data);
         setCar(response.data);
       } catch (err: any) {
-        console.error("Error fetching car:", err);
         setError(err.message || "Failed to fetch car details");
       } finally {
         setLoading(false);

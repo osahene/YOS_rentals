@@ -30,7 +30,6 @@ export const fetchCars = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchCars();
-      console.log("Fetch Cars Response:", response);
       return response.data; // Adjust based on your actual API shape
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
@@ -72,7 +71,6 @@ export const createCar = createAsyncThunk<Car, CarFormData, { rejectValue: strin
       });
 
       const response = await apiService.createCar(formDataToSend);
-      console.log("Create Car Response:", response);
       if (response.status === 201 || response.status === 200) {
         return response.data;
       }
@@ -124,7 +122,6 @@ export const carsSlice = createSlice({
   initialState,
   reducers: {
     setSelectedCar: (state, action: PayloadAction<Car | null>) => {
-      console.log("Setting selected car:", action);
       state.selectedCar = action.payload;
     },
     clearError: (state) => {

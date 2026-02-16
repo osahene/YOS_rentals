@@ -264,13 +264,11 @@ export default function RegisterNewCarPage() {
     }
     try {
       const result = await dispatch(createCar(formData)).unwrap();
-      console.log("Car created:", result);
       if (result) {
         alert("Car registered successfully!");
         router.push("/dashboard/cars");
       }
     } catch (error) {
-      console.error("Failed to register car:", error);
     }
   };
 

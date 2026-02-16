@@ -38,7 +38,6 @@ export default function DashboardPage() {
         setError(null);
         
         const data = await apiService.fetchDashboardData();
-        console.log(data)
         setDashboardData(data);
 
         if (data.trends && data.trends.length >= 2) {
@@ -53,7 +52,6 @@ export default function DashboardPage() {
           });
         }
       } catch (err: any) {
-        console.error("Error loading dashboard data:", err);
         setError(err.response?.data?.message || "Failed to load dashboard data");
         
         // Fallback to mock data if API fails

@@ -103,7 +103,6 @@ export const fetchBookings = createAsyncThunk(
   }, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchBookings(params);
-      console.log("Fetch Bookings Response:", response);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));

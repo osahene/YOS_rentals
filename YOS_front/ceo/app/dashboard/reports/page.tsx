@@ -138,7 +138,7 @@ export default function FinancialReportPage() {
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
     documentTitle: `Financial-Report-${report?.report_id || Date.now()}`,
-    onAfterPrint: () => console.log("Report printed successfully"),
+    onAfterPrint: () => alert("Report printed successfully"),
   });
 
 
