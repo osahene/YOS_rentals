@@ -336,6 +336,9 @@ class CreateCarSerializer(serializers.ModelSerializer):
     insurance_amount = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True)
     insurance_start_date = serializers.DateField(write_only=True)
     insurance_end_date = serializers.DateField(write_only=True)
+    total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
+    total_expenses = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
+    net_profit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
     images = serializers.ListField(
         child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
         required=False,
@@ -350,7 +353,7 @@ class CreateCarSerializer(serializers.ModelSerializer):
             'vin', 'purchase_price', 'purchase_date', 'fuel_type',
             'transmission', 'seats', 'mileage', 'features', 'description',
             'images', 'image_urls', 'insurance_company', 'policy_number', 'policy_type',
-            'insurance_amount', 'insurance_start_date', 'insurance_end_date'
+            'insurance_amount', 'insurance_start_date', 'insurance_end_date', 'total_revenue', 'total_expenses', 'net_profit',
         ]
     
     def validate_features(self, value):

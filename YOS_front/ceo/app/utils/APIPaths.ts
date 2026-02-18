@@ -6,6 +6,10 @@ const apiService = {
  verifyEmail: (data: { token: string }) => $axios.get(`/account/verify-email/?token=${data.token}`),
   VerifyPhoneNumber: (data: any) =>
     $axios.post("/account/verify-phone-number/", data),
+  sendPhoneOtp: (data: any) =>
+    $axios.post("/account/verify-phone-number/", data),
+  verifyPhoneOtp: (data: any) =>
+    $axios.post("/account/verify-phone-number/", data),
   VerifyPhoneNumberOTP: (data: any) =>
     $axios.post("/account/verify-phone-number-otp/", data),
   login: (data: any) => $axios.post("/account/user-login/", data),
