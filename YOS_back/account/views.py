@@ -1,6 +1,7 @@
 import random
 import hmac
 import hashlib
+from django.utils import timezone
 from datetime import timedelta
 
 from django.conf import settings
@@ -9,17 +10,18 @@ from django.core import signing
 from django.core.mail import send_mail
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404
-
+from django.contrib.auth.password_validation import validate_password
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User
+from .models import User, SecurityQuestion
 from .serializers import (
     RegistrationSerializer, LoginSerializer, UserSerializer,
     ChangePasswordSerializer, EmailVerificationSerializer,
-    SendPhoneOTPSerializer, VerifyPhoneOTPSerializer
+    SendPhoneOTPSerializer, VerifyPhoneOTPSerializer, SecurityQuestionSerializer
 )
+from .utils import send_sms_notification
 
 # ---------- Helpers ----------
 def generate_email_token(user_id: str) -> str:
@@ -86,6 +88,14 @@ def unset_jwt_cookies(response):
     return response
 
 
+def generate_reset_token(user_id):
+    signer = signing.TimestampSigner(salt="password-reset")
+    return signer.sign(str(user_id))
+
+def verify_reset_token(token, max_age=3600):
+    signer = signing.TimestampSigner(salt="password-reset")
+    return signer.unsign(token, max_age=max_age)
+
 # ---------- Views ----------
 class RegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -122,14 +132,18 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
-        refresh = RefreshToken.for_user(user)
-        resp = Response({
-            "detail": "Login successful",
-            "user": UserSerializer(user).data
-        }, status=status.HTTP_200_OK)
+        # Send login notification SMS
+        send_sms_notification("0244455757", f"Login detected for {user.email} at {timezone.now()}")
 
-        set_jwt_cookies(resp, refresh)
-        return resp
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "detail": "Login successful",
+            "user": UserSerializer(user).data,
+            "tokens": {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh)
+            }
+        }, status=200)
 
 
 class LogoutView(APIView):
@@ -257,3 +271,84 @@ class VerifyPhoneOTPView(APIView):
                 return Response({"detail": "Phone verified."}, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+# Newly added 17th Feb
+class RequestPasswordResetView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({"detail": "Email required."}, status=400)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=404)
+
+        questions = user.security_answers.select_related('question').all()
+        if not questions.exists():
+            return Response({"detail": "No security questions set."}, status=400)
+
+        data = [{"id": q.question.id, "question": q.question.question_text} for q in questions]
+        return Response({"questions": data}, status=200)
+
+
+class VerifySecurityAnswersView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        answers = request.data.get('answers')   # list of {question_id, answer}
+        if not email or not answers:
+            return Response({"detail": "Email and answers required."}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=404)
+
+        user_answers = {a.question_id: a for a in user.security_answers.all()}
+        for item in answers:
+            qid = item.get('question_id')
+            ans = item.get('answer')
+            if qid not in user_answers or not user_answers[qid].check_answer(ans):
+                return Response({"detail": "Incorrect answers."}, status=400)
+
+        token = generate_reset_token(str(user.id))
+        return Response({"reset_token": token}, status=200)
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token = request.data.get('reset_token')
+        new_password = request.data.get('new_password')
+        if not token or not new_password:
+            return Response({"detail": "Token and new password required."}, status=400)
+
+        try:
+            user_id = verify_reset_token(token)
+            user = User.objects.get(pk=user_id)
+        except (signing.BadSignature, signing.SignatureExpired, User.DoesNotExist):
+            return Response({"detail": "Invalid or expired token."}, status=400)
+
+        validate_password(new_password, user)
+        user.set_password(new_password)
+        user.save()
+
+        # Send SMS notification
+        send_sms_notification("0244455757", "Password has been reset successfully.")
+
+        return Response({"detail": "Password reset successful."}, status=200)
+    
+class SecurityQuestionListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        questions = SecurityQuestion.objects.all()
+        serializer = SecurityQuestionSerializer(questions, many=True)
+        return Response(serializer.data)

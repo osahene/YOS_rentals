@@ -1,9 +1,9 @@
 import $axios from "./axiosInstance";
 
 const apiService = {
-  googleLog: (data: any) => $axios.post("/social/google/", data),
-  register: (data: any) => $axios.post("/account/user-register/", data),
-  verifyEmail: (data: any) => $axios.post("/account/verify-email/", data),
+  getSecurityQuestions: () => $axios.get("/account/security-questions/"),
+  register: (data: any) => $axios.post("/account/register/", data),
+ verifyEmail: (data: { token: string }) => $axios.get(`/account/verify-email/?token=${data.token}`),
   VerifyPhoneNumber: (data: any) =>
     $axios.post("/account/verify-phone-number/", data),
   VerifyPhoneNumberOTP: (data: any) =>
@@ -11,14 +11,15 @@ const apiService = {
   login: (data: any) => $axios.post("/account/user-login/", data),
   logout: () => $axios.post("/account/user-logout/"),
   // Reset Password
-  forgottenEmail: (data: any) => $axios.post("/account/request-reset-email/", data),
-  confirmPassword: (data: any) => $axios.post("/account/password-reset/", data),
-  // Generate OTP
-  generateRegister: (data: any) =>
-    $axios.post("/account/user-register-generate-otp/", data),
+  requestPasswordReset: (data: { email: string }) =>
+    $axios.post("/account/password-reset/request/", data),
+  verifySecurityAnswers: (data: { email: string; answers: { question_id: number; answer: string }[] }) =>
+    $axios.post("/account/password-reset/verify-answers/", data),
+  resetPassword: (data: { reset_token: string; new_password: string }) =>
+    $axios.post("/account/password-reset/confirm/", data),
 
   // dashboard
-   fetchDashboardData: () => Promise.all([
+  fetchDashboardData: () => Promise.all([
     $axios.get("/dashboard/metrics/"),
     $axios.get("/dashboard/recent-bookings/"),
     $axios.get("/dashboard/daily-bookings/"),
@@ -75,14 +76,14 @@ const apiService = {
   cancelBooking: (id: string, data: any) => $axios.post(`/bookings/${id}/cancel/`, data),
   markBookingReturned: (id: string, data: any) => $axios.post(`/bookings/${id}/mark_returned/`, data),
   checkAvailability: (params: any) => $axios.get("/bookings/check_availability/", { params }),
-  
+
   // Reports API
   fetchComprehensiveFinancialReport: (params: any) => $axios.get('/reports/financial/', { params }),
   exportFinancialReport: (data: any) => $axios.post('/reports/financial/export/', data),
   fetchFinancialProjections: (params: any) => $axios.get('/reports/financial/projections/', { params }),
 
   // Staff API
-   // Staff API
+  // Staff API
   fetchStaff: (params?: any) => $axios.get("/staff/", { params }),
   fetchStaffById: (id: string) => $axios.get(`/staff/${id}/`),
   createStaff: (data: any) => $axios.post("/staff/", data),

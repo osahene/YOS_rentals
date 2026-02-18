@@ -30,6 +30,7 @@ export default function Header() {
   const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
   const { darkMode } = useSelector((state: RootState) => state.ui);
+  const { first_name, last_name, email } = useSelector((state: RootState) => state.auth);
 
   const currentPage = pathname?.split("/").pop() || "dashboard";
   const title = pageTitles[currentPage] || "Dashboard";
@@ -138,13 +139,12 @@ export default function Header() {
                         {notification.message}
                       </p>
                       <div
-                        className={`inline-flex px-2 py-1 rounded text-xs mt-2 ${
-                          notification.type === "booking"
+                        className={`inline-flex px-2 py-1 rounded text-xs mt-2 ${notification.type === "booking"
                             ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
                             : notification.type === "maintenance"
-                            ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"
-                            : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                        }`}
+                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"
+                              : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                          }`}
                       >
                         {notification.type}
                       </div>
@@ -161,10 +161,10 @@ export default function Header() {
             </div>
             <div className="hidden md:block">
               <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                Dennis Oduro Akomeah
+                {first_name} {last_name}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                admin@yosrentals.com
+                {email}
               </p>
             </div>
             <ChevronDown className="w-5 h-5 text-gray-400" />

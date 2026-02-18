@@ -63,7 +63,7 @@ export default function MetricCard({
       <p className="text-gray-600 dark:text-white text-sm">{title}</p>
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Last month</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400"></p>
       </div>
     </div>
   );

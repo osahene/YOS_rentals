@@ -172,7 +172,7 @@ export default function BookingsPage() {
     {
       title: "Total Bookings",
       value: dashboardMetrics.total_bookings.toLocaleString(),
-      change: "+12.5%",
+      change: "",
       icon: CalendarDays,
       color: "bg-blue-600",
       loading: loading
@@ -180,7 +180,7 @@ export default function BookingsPage() {
     {
       title: "Active Bookings",
       value: dashboardMetrics.active_bookings.toString(),
-      change: "+1.5%",
+      change: "",
       icon: Clock,
       color: "bg-blue-600",
       loading: loading
@@ -188,7 +188,7 @@ export default function BookingsPage() {
     {
       title: "Revenue",
       value: formatCurrency(dashboardMetrics.revenue),
-      change: "+3%",
+      change: "",
       icon: ReceiptCent,
       color: "bg-blue-600",
       loading: loading
@@ -196,7 +196,7 @@ export default function BookingsPage() {
     {
       title: "Cancellation",
       value: dashboardMetrics.cancelled.toString(),
-      change: "0%",
+      change: "",
       icon: TrendingUp,
       color: "bg-blue-600",
       loading: loading

@@ -1,9 +1,16 @@
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
 import dayjs from "dayjs";
-import { store } from "../lib/store/store"; 
-import { logout, refreshToken } from "../lib/store/slices/authSlice"; 
+import { logout, refreshToken as refreshTokenAction } from "../lib/store/slices/authSlice"; 
 import { setGlobalLoading } from "../lib/store/slices/globalSlice";
+
+// --- 1. Define a variable to hold the store ---
+let store: any;
+
+// --- 2. Export a function to inject the store ---
+export const injectStore = (_store: any) => {
+  store = _store;
+};
 
 interface CustomJwtPayload extends JwtPayload {
   exp: number;
@@ -12,12 +19,12 @@ interface CustomJwtPayload extends JwtPayload {
 const $axios = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://127.0.0.1:8000",
   withCredentials: true,
-  // headers: {
-    // "X-API-KEY": process.env.FRONTEND_API_KEY || "",
-  // },
 });
 
 // const TakeRefreshToken = async () => {
+//   // Safety check
+//   if (!store) return null;
+
 //   const state = store.getState();
 //   let refresh_token = state.auth.refreshToken;
 //   if (!refresh_token) return null;
@@ -34,7 +41,7 @@ const $axios = axios.create({
 //     const { access, refresh } = response.data;
 //     if (access) {
 //       store.dispatch(
-//         refreshToken({
+//         refreshTokenAction({
 //           accessToken: access,
 //           refreshToken: refresh || refresh_token,
 //         })
@@ -52,6 +59,9 @@ const $axios = axios.create({
 //   if (typeof window === "undefined") return;
 
 //   setInterval(async () => {
+//     // Safety check
+//     if (!store) return;
+
 //     const state = store.getState();
 //     const { accessToken, refreshToken } = state.auth;
 
@@ -72,68 +82,58 @@ const $axios = axios.create({
 
 // scheduleTokenRefresh();
 
-// Request Interceptor
+// // Request Interceptor
 // $axios.interceptors.request.use(
 //   async (req: InternalAxiosRequestConfig) => {
-//     store.dispatch(setGlobalLoading(true));
-//     const state = store.getState();
-//     let accessToken = state.auth.accessToken;
+//     // Safety check
+//     if (store) {
+//         store.dispatch(setGlobalLoading(true));
+//         const state = store.getState();
+//         let accessToken = state.auth.accessToken;
 
-//     if (accessToken) {
-//       if (accessToken.startsWith('"') && accessToken.endsWith('"')) {
-//         accessToken = accessToken.slice(1, -1);
-//       }
+//         if (accessToken) {
+//             if (accessToken.startsWith('"') && accessToken.endsWith('"')) {
+//                 accessToken = accessToken.slice(1, -1);
+//             }
 
-//       try {
-//         const user = jwtDecode<CustomJwtPayload>(accessToken);
-//         const isExpired = dayjs.unix(user.exp).isBefore(dayjs());
+//             try {
+//                 const user = jwtDecode<CustomJwtPayload>(accessToken);
+//                 const isExpired = dayjs.unix(user.exp).isBefore(dayjs());
 
-//         if (!isExpired) {
-//           req.headers.Authorization = `Bearer ${accessToken}`;
-//         } else {
-//           const tokens = await TakeRefreshToken();
-//           if (tokens?.access_token) {
-//             req.headers.Authorization = `Bearer ${tokens.access_token}`;
-//           } else {
-//             store.dispatch(logout());
-//             if (typeof window !== "undefined") window.location.href = "/auth/login";
-//           }
+//                 if (!isExpired) {
+//                     req.headers.Authorization = `Bearer ${accessToken}`;
+//                 } else {
+//                     const tokens = await TakeRefreshToken();
+//                     if (tokens?.access_token) {
+//                         req.headers.Authorization = `Bearer ${tokens.access_token}`;
+//                     } else {
+//                         store.dispatch(logout());
+//                         if (typeof window !== "undefined") window.location.href = "/auth/login";
+//                     }
+//                 }
+//             } catch (error) {
+//                 store.dispatch(logout());
+//             }
 //         }
-//       } catch (error) {
-//         store.dispatch(logout());
-//       }
 //     }
 //     return req;
 //   },
 //   (error) => {
-//     store.dispatch(setGlobalLoading(false));
+//     if (store) store.dispatch(setGlobalLoading(false));
 //     return Promise.reject(error);
 //   }
 // );
 
-// Response Interceptor
+// // Response Interceptor
 // $axios.interceptors.response.use(
 //   (response: AxiosResponse) => {
-//     store.dispatch(setGlobalLoading(false));
+//     if (store) store.dispatch(setGlobalLoading(false));
 //     return response;
 //   },
 //   (error: AxiosError<any>) => {
-//     store.dispatch(setGlobalLoading(false));
+//     if (store) store.dispatch(setGlobalLoading(false));
 
-//     const errorMessage = 
-//       error.response?.data?.detail || 
-//       error.response?.data?.message || 
-//       error.message || 
-//       "Request failed";
-
-//     store.dispatch({
-//       type: "notifications/addNotification",
-//       payload: {
-//         title: "Error",
-//         message: errorMessage,
-//         type: "danger",
-//       },
-//     });
+//     // Optional: You can handle global errors here
 //     return Promise.reject(error);
 //   }
 // );

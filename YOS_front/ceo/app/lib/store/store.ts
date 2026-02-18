@@ -2,13 +2,14 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from "redux-persist";
 import authReducer from './slices/authSlice'
+import passwordResetReducer from './slices/passwrodResetSlice';
 import carsReducer from './slices/carsSlice';
 import customersReducer from './slices/customersSlice';
 import bookingsReducer from './slices/bookingsSlice';
 import staffReducer from './slices/staffSlice';
 import uiReducer from './slices/uiSlice';
 import storage from 'redux-persist/lib/storage';
-
+import { injectStore } from '@/app/utils/axiosInstance';
 const rootPersistConfig = {
   key: "root",
   storage,
@@ -17,6 +18,7 @@ const rootPersistConfig = {
 
 const rootReducer = combineReducers({
   auth: authReducer,
+  passwordReset: passwordResetReducer,
   cars: carsReducer,
   customers: customersReducer,
   bookings: bookingsReducer,
@@ -39,6 +41,8 @@ export const store = configureStore({
       },
     }),
 });
+
+injectStore(store);
 export const persistor = persistStore(store);
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

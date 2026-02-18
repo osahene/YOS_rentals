@@ -406,3 +406,7 @@ class CreateCarSerializer(serializers.ModelSerializer):
         if value and Car.objects.filter(vin=value).exists():
             raise serializers.ValidationError("A car with this VIN already exists.")
         return value
+    
+    def get_image_urls(self, obj):
+        # Return the list of URLs stored in obj.images (default to empty list)
+        return obj.images or []

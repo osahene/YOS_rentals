@@ -194,3 +194,25 @@ class UserSession(models.Model):
     def __str__(self):
         return f"Session for {self.user.email} - {self.session_key}"
 
+class SecurityQuestion(models.Model):
+    question_text = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return self.question_text
+
+
+class UserSecurityAnswer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='security_answers')
+    question = models.ForeignKey(SecurityQuestion, on_delete=models.CASCADE)
+    answer_hash = models.CharField(max_length=128, db_index=True)   # HMAC of answer
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'question')
+
+    def set_answer(self, plain_answer):
+        self.answer_hash = compute_hmac(plain_answer)
+
+    def check_answer(self, plain_answer):
+        return hmac.compare_digest(self.answer_hash, compute_hmac(plain_answer))

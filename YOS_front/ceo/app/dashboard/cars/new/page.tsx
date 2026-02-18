@@ -79,6 +79,22 @@ const MAKE_OPTIONS = [
   "Suzuki",
 ];
 
+const CAR_TYPES = [
+  "SUV",
+  "Sedan",
+  "Pick-up",
+  "Hatchback",
+  "Crossover",
+  "Van",
+  "Mini-van",
+  "Bus",
+  "Mini-bus",
+  "Micro",
+  "Couple",
+  "Cabriolet",
+  "Roadster",
+  "Targa"
+]
 
 // Color options with hex codes
 const COLOR_OPTIONS = [
@@ -102,9 +118,9 @@ const COLOR_OPTIONS = [
 export default function RegisterNewCarPage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  
+
   const { creating, error } = useSelector((state: RootState) => state.cars);
-  
+
   // Form state
   const [formData, setFormData] = useState<CarFormData>({
     make: "",
@@ -115,7 +131,7 @@ export default function RegisterNewCarPage() {
     vin: "",
     purchase_price: 0,
     purchase_date: new Date().toISOString().split("T")[0],
-   
+    car_type: "",
     fuel_type: "petrol",
     transmission: "automatic",
     seats: 5,
@@ -156,17 +172,17 @@ export default function RegisterNewCarPage() {
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "number" 
+        type === "number"
           ? parseFloat(value) || 0
           : type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
+            ? (e.target as HTMLInputElement).checked
+            : value,
     }));
-    
+
     // Clear error for this field
     if (formErrors[name]) {
       setFormErrors((prev) => {
@@ -183,12 +199,12 @@ export default function RegisterNewCarPage() {
       const newFeatures = prev.includes(feature)
         ? prev.filter((f) => f !== feature)
         : [...prev, feature];
-      
+
       setFormData((prevData) => ({
         ...prevData,
         features: newFeatures,
       }));
-      
+
       return newFeatures;
     });
   };
@@ -235,21 +251,21 @@ export default function RegisterNewCarPage() {
     if (!formData.make.trim()) errors.make = "Make is required";
     if (!formData.model.trim()) errors.model = "Model is required";
     if (!formData.license_plate.trim()) errors.license_plate = "License plate is required";
-    if (!formData.purchase_price || formData.purchase_price <= 0) 
+    if (!formData.purchase_price || formData.purchase_price <= 0)
       errors.purchase_price = "Valid purchase price is required";
-    if (!formData.mileage && formData.mileage !== 0) 
+    if (!formData.mileage && formData.mileage !== 0)
       errors.mileage = "Mileage is required";
-    if (!formData.insurance_company) 
+    if (!formData.insurance_company)
       errors.insurance_company = "Insurance company name is required";
-    if (!formData.policy_number) 
+    if (!formData.policy_number)
       errors.policy_number = "Policy number is required";
-    if (!formData.policy_type) 
+    if (!formData.policy_type)
       errors.policy_type = "Policy type is required";
     if (!formData.insurance_amount || formData.insurance_amount <= 0)
       errors.insurance_amount = "Valid insurance amount is required";
-    if (!formData.insurance_start_date) 
+    if (!formData.insurance_start_date)
       errors.insurance_start_date = "Insurance start date is required";
-    if (!formData.insurance_end_date) 
+    if (!formData.insurance_end_date)
       errors.insurance_end_date = "Insurance end date is required";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -258,7 +274,7 @@ export default function RegisterNewCarPage() {
   // Handle form submission
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -332,8 +348,10 @@ export default function RegisterNewCarPage() {
             <FaCar />
             Basic Information
           </h2>
+          <div className="space-y-4">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
             {/* Make */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -343,11 +361,10 @@ export default function RegisterNewCarPage() {
                 name="make"
                 value={formData.make}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.make
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.make
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               >
                 <option value="">Select Make</option>
@@ -372,11 +389,10 @@ export default function RegisterNewCarPage() {
                 name="model"
                 value={formData.model}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.model
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.model
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 placeholder="e.g., Camry, Civic, Model 3"
                 required
               />
@@ -385,7 +401,26 @@ export default function RegisterNewCarPage() {
               )}
             </div>
 
-            {/* Year */}
+            {/* Car Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Car Type *
+              </label>
+              <select
+                name="car_type"
+                value={formData.car_type}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                required
+                >
+                {CAR_TYPES.map((car_type) => (
+                  <option key={car_type} value={car_type}>
+                    {car_type}
+                  </option>
+                ))}
+              </select>
+            </div>
+                {/* Year */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Year *
@@ -404,6 +439,8 @@ export default function RegisterNewCarPage() {
                 ))}
               </select>
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
             {/* Color */}
             <div>
@@ -443,11 +480,10 @@ export default function RegisterNewCarPage() {
                 name="license_plate"
                 value={formData.license_plate}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.license_plate
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.license_plate
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 placeholder="e.g., ABC-1234"
                 required
               />
@@ -461,7 +497,7 @@ export default function RegisterNewCarPage() {
             {/* VIN */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Chasis Number 
+                Chasis Number
               </label>
               <input
                 type="text"
@@ -473,6 +509,7 @@ export default function RegisterNewCarPage() {
                 maxLength={17}
               />
             </div>
+          </div>
           </div>
         </motion.div>
 
@@ -553,11 +590,10 @@ export default function RegisterNewCarPage() {
                 value={formData.mileage}
                 onChange={handleInputChange}
                 min="0"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.mileage
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.mileage
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.mileage && (
@@ -576,11 +612,10 @@ export default function RegisterNewCarPage() {
                     key={feature}
                     type="button"
                     onClick={() => handleFeatureToggle(feature)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      selectedFeatures.includes(feature)
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedFeatures.includes(feature)
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
                   >
                     {feature}
                     {selectedFeatures.includes(feature) && (
@@ -633,11 +668,10 @@ export default function RegisterNewCarPage() {
                 onChange={handleInputChange}
                 min="0"
                 step="0.01"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.purchase_price
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.purchase_price
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.purchase_price && (
@@ -662,7 +696,7 @@ export default function RegisterNewCarPage() {
               />
             </div>
 
-            
+
           </div>
         </motion.div>
 
@@ -689,11 +723,10 @@ export default function RegisterNewCarPage() {
                 name="insurance_company"
                 value={formData.insurance_company}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.insurance_company
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.insurance_company
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.insurance_company && (
@@ -711,11 +744,10 @@ export default function RegisterNewCarPage() {
                 name="policy_number"
                 value={formData.policy_number}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.policy_number
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.policy_number
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.last_service_date && (
@@ -728,16 +760,15 @@ export default function RegisterNewCarPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Insurance Policy Type *
               </label>
-              
+
               <select
                 name="policy_type"
                 value={formData.policy_type}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.policy_type
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.policy_type
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               >
                 <option value="">Select Policy Type</option>
@@ -760,11 +791,10 @@ export default function RegisterNewCarPage() {
                 name="insurance_amount"
                 value={formData.insurance_amount}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.insurance_amount
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.insurance_amount
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.insurance_amount && (
@@ -784,11 +814,10 @@ export default function RegisterNewCarPage() {
                 name="insurance_start_date"
                 value={formData.insurance_start_date}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.insurance_start_date
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.insurance_start_date
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.insurance_start_date && (
@@ -808,11 +837,10 @@ export default function RegisterNewCarPage() {
                 name="insurance_end_date"
                 value={formData.insurance_end_date}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
-                  formErrors.insurance_end_date
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${formErrors.insurance_end_date
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 required
               />
               {formErrors.insurance_end_date && (

@@ -7,7 +7,7 @@ import MetricsGrid from "../components/homepage/MetricsGrid";
 import ChartsSection from "../components/homepage/ChartsSection";
 import RecentBookings from "../components/homepage/Bookings";
 import CarAnalytics from "../components/homepage/Analytics";
-import { LuUser, LuDollarSign, LuCar, LuCalendar, LuTrendingUp } from "react-icons/lu";
+import { LuUser, LuReceiptCent, LuCar, LuCalendar, LuTrendingUp } from "react-icons/lu";
 import apiService from "../utils/APIPaths";
 import type { DashboardData } from "../lib/store/types/dashboard";
 
@@ -25,10 +25,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [growthRates, setGrowthRates] = useState({
-    customers: 12.5,
-    revenue: 8.3,
-    cars: 5.2,
-    bookings: 22,
+    customers: 0,
+    revenue: 0,
+    cars: 0,
+    bookings: 0,
   });
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function DashboardPage() {
       title: "Revenue (30 days)",
       value: `¢${dashboardData.metrics.revenue.toLocaleString()}`,
       change: `${growthRates.revenue >= 0 ? '+' : ''}${growthRates.revenue.toFixed(1)}%`,
-      icon: LuDollarSign,
+      icon: LuReceiptCent,
       color: "from-green-500 to-emerald-500",
       trendIcon: LuTrendingUp,
       trendColor: growthRates.revenue >= 0 ? "text-green-500" : "text-red-500",

@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate, password_validation
 from django.core.validators import validate_email
-from .models import User, ROLE_CHOICES
+from .models import User, ROLE_CHOICES, UserSecurityAnswer, compute_hmac, SecurityQuestion
 
 
 
@@ -23,21 +23,17 @@ class RegistrationSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8, write_only=True)
-    country_code = serializers.CharField(
-        max_length=10, required=False, default='+233')
-    phone_number = serializers.CharField(
-        max_length=50, required=False, allow_blank=True)
-    role = serializers.ChoiceField(
-        choices=[c[0] for c in ROLE_CHOICES], 
-        required=False, 
-        default='customer'
+    country_code = serializers.CharField(max_length=10, default='+233')
+    phone_number = serializers.CharField(max_length=50, allow_blank=True)
+    role = serializers.ChoiceField(choices=[c[0] for c in ROLE_CHOICES], default='ceo')
+    security_answers = serializers.ListField(
+        child=serializers.DictField(), write_only=True, required=True
     )
 
     def validate_email(self, value):
         validate_email(value)
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                "A user with that email already exists.")
+            raise serializers.ValidationError("User with this email already exists.")
         return value
 
     def validate_password(self, value):
@@ -45,11 +41,26 @@ class RegistrationSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
+        security_answers = validated_data.pop('security_answers')
+        password = validated_data.pop('password')
         user = User.objects.create_user(password=password, **validated_data)
+
+        # Save security answers
+        for ans in security_answers:
+            qid = ans['question_id']
+            answer = ans['answer']
+            UserSecurityAnswer.objects.create(
+                user=user,
+                question_id=qid,
+                answer_hash=compute_hmac(answer)   # hash immediately
+            )
         return user
-
-
+    
+    
+class SecurityQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SecurityQuestion
+        fields = ('id', 'question_text')
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
