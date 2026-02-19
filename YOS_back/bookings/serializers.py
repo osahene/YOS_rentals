@@ -60,9 +60,16 @@ class BookingDetailSerializer(BookingSerializer):
         ]
 
 class CreateBookingSerializer(serializers.ModelSerializer):
+    from customers.models import Customer
     # For new customer creation
     customer_data = serializers.JSONField(write_only=True, required=False)
     guarantor_data = serializers.JSONField(write_only=True, required=False)
+    customer = serializers.PrimaryKeyRelatedField(
+        queryset=Customer.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
     
     class Meta:
         model = Booking
@@ -78,6 +85,7 @@ class CreateBookingSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, attrs):
+        
         # Check date validity
         if attrs['start_date'] >= attrs['end_date']:
             raise serializers.ValidationError("End date must be after start date.")
@@ -133,8 +141,6 @@ class CreateBookingSerializer(serializers.ModelSerializer):
             validated_data['customer'] = customer
         
         # Calculate daily rate from car
-        car = validated_data['car']
-        validated_data['daily_rate'] = car.daily_rate
         
         # Create booking
         booking = super().create(validated_data)

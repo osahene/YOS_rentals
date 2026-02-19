@@ -62,7 +62,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
         return None
 
 class CustomerDetailSerializer(CustomerListSerializer):
-    guarantors = GuarantorSerializer(many=True, read_only=True)
+    guarantor = GuarantorSerializer(many=True, read_only=True)
     bookings = serializers.SerializerMethodField()
     communication_preferences = serializers.JSONField(read_only=True)
     
@@ -72,7 +72,7 @@ class CustomerDetailSerializer(CustomerListSerializer):
             'driver_license_issue_date', 'driver_license_expiry_date',
             'occupation', 'gps_address', 'address_city', 'address_region',
             'address_country', 'preferred_vehicle_type',
-            'communication_preferences', 'guarantors', 'bookings',
+            'communication_preferences', 'guarantor', 'bookings',
             'last_booking_date'
         ]
     
@@ -84,7 +84,7 @@ class CustomerDetailSerializer(CustomerListSerializer):
         return BookingSerializer(bookings, many=True).data
 
 class CreateCustomerSerializer(serializers.ModelSerializer):
-    guarantors = GuarantorSerializer(many=True, required=False)
+    guarantor = GuarantorSerializer(many=True, required=False)
     
     class Meta:
         model = Customer
@@ -94,14 +94,14 @@ class CreateCustomerSerializer(serializers.ModelSerializer):
             'driver_license_issue_date', 'driver_license_expiry_date',
             'occupation', 'gps_address', 'address_city', 'address_region',
             'address_country', 'preferred_vehicle_type',
-            'communication_preferences', 'guarantors'
+            'communication_preferences', 'guarantor'
         ]
     
     def create(self, validated_data):
-        guarantors_data = validated_data.pop('guarantors', [])
+        guarantor_data = validated_data.pop('guarantor', [])
         customer = Customer.objects.create(**validated_data)
         
-        for guarantor_data in guarantors_data:
+        if guarantor_data:
             Guarantor.objects.create(customer=customer, **guarantor_data)
         
         return customer

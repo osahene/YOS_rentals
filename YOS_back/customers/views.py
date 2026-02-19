@@ -62,11 +62,14 @@ class CustomerViewSet(viewsets.ModelViewSet):
         
         # Optimize queries for list view
         if self.action == 'list':
-            queryset = queryset.prefetch_related('guarantors')
-        
+            # queryset = queryset.prefetch_related('guarantors')
+            pass
         # Optimize for detail view
         elif self.action == 'retrieve':
-            queryset = queryset.prefetch_related('guarantors', 'bookings', 'bookings__car')
+            queryset = queryset.select_related('guarantor').prefetch_related(
+            'bookings',
+            'bookings__car'
+        )
         
         return queryset
     
@@ -93,14 +96,24 @@ class CustomerViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def add_guarantor(self, request, pk=None):
-        """Add a guarantor to customer"""
+        """Add or update a guarantor for a customer (OneToOne)."""
         customer = self.get_object()
         serializer = GuarantorSerializer(data=request.data)
-        
+
         if serializer.is_valid():
-            serializer.save(customer=customer)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+            # Check if guarantor already exists
+            if hasattr(customer, 'guarantor'):
+                # Update existing guarantor
+                guarantor = customer.guarantor
+                for attr, value in serializer.validated_data.items():
+                    setattr(guarantor, attr, value)
+                guarantor.save()
+                return Response(GuarantorSerializer(guarantor).data)
+            else:
+                # Create new
+                serializer.save(customer=customer)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'])
@@ -152,7 +165,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 'silver': Customer.objects.filter(loyalty_tier='silver').count(),
                 'gold': Customer.objects.filter(loyalty_tier='gold').count(),
                 'platinum': Customer.objects.filter(loyalty_tier='platinum').count(),
-                'diamond': Customer.objects.filter(loyalty_tier='diamond').count(),
+                # 'diamond': Customer.objects.filter(loyalty_tier='diamond').count(),
             }
         })
     

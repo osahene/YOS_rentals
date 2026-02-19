@@ -62,22 +62,26 @@ class BookingViewSet(viewsets.ModelViewSet):
         car = serializer.validated_data['car']
         start_date = serializer.validated_data['start_date']
         end_date = serializer.validated_data['end_date']
-        
+
         if not self.is_car_available(car, start_date, end_date):
             raise serializers.ValidationError(
                 f"Car {car.license_plate} is not available for the selected dates"
             )
-        
-        booking = serializer.save(created_by=self.request.user)
-        
+
+        # Set created_by only if user is authenticated
+        if self.request.user.is_authenticated:
+            booking = serializer.save(created_by=self.request.user)
+        else:
+            booking = serializer.save(created_by=None)  # null is allowed
+
         # Update car status if booking starts today
         if start_date == timezone.now().date():
             car.status = 'rented'
             car.save()
+
+        # Send confirmation (placeholder)
+        self._send_confirmation_sms(booking)
         
-        # Send confirmation (would integrate with email/SMS service)
-        self.send_confirmation(booking)
-    
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
         """Cancel a booking with optional refund"""
@@ -226,11 +230,6 @@ class BookingViewSet(viewsets.ModelViewSet):
         
         return not overlapping
     
-    def send_confirmation(self, booking):
-        """Send booking confirmation (placeholder for email/SMS integration)"""
-        # In production, integrate with email service (SendGrid, etc.)
-        # and SMS service (Twilio, etc.)
-        pass
     
     def generate_receipt(self, booking):
         """Generate receipt data for a booking"""
@@ -449,10 +448,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=500)
     
     
-    @action(detail=True, methods=['post'])
-    def send_confirmation_sms(self, request, pk=None):
+    def _send_confirmation_sms(self, booking):
         """Send a booking confirmation SMS via mNotify."""
-        booking = self.get_object()
         customer = booking.customer
         print('booking', booking)
 
