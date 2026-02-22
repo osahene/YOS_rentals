@@ -129,7 +129,13 @@ class BookingWithGuarantorSerializer(serializers.ModelSerializer):
     class Meta:
         from bookings.models import Booking
         model = Booking
-        fields = ['id', 'start_date', 'end_date', 'guarantor_name', 'guarantor_phone']
+        fields = ['id', 'customer_first_name', 'customer_last_name', 'start_date', 'end_date', 'guarantor_name', 'guarantor_phone']
+
+    def get_customer_first_name(self, obj):
+        return obj.customer.first_name if obj.customer else "N/A"
+
+    def get_customer_last_name(self, obj):
+        return obj.customer.last_name if obj.customer else "N/A"
 
     def get_guarantor_name(self, obj):
         if obj.guarantor:

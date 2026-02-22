@@ -154,11 +154,10 @@ class CarViewSet(viewsets.ModelViewSet):
             event_type='status_change',
             title=f"Status changed to {new_status}",
             description=reason,
-            date=timezone.now().date(),
             extra_data={
                 'old_status': car.status,
                 'new_status': new_status,
-                'changed_by': request.user.username
+                'changed_by': request.user.username if request.user.is_authenticated else 'system'
             }
         )
         
