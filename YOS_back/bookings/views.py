@@ -62,7 +62,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         car = serializer.validated_data['car']
         start_date = serializer.validated_data['start_date']
         end_date = serializer.validated_data['end_date']
-
+        payment_method = serializer.validated_data['payment_method']
+        
+        
         if not self.is_car_available(car, start_date, end_date):
             raise serializers.ValidationError(
                 f"Car {car.license_plate} is not available for the selected dates"
@@ -78,6 +80,10 @@ class BookingViewSet(viewsets.ModelViewSet):
         if start_date == timezone.now().date():
             car.status = 'rented'
             car.save()
+        
+        if payment_method == 'cash':
+            booking.payment_status = 'paid'
+            booking.save()
 
         # Send confirmation (placeholder)
         self._send_confirmation_sms(booking)

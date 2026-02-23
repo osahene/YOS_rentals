@@ -184,11 +184,20 @@ def top_performing_cars(request):
     """Get top performing cars by revenue"""
     
     top_cars = Car.objects.annotate(
-        total_revenue=Sum('bookings__total_amount'),
-        booking_count=Count('bookings')
+        # 1. Calculate revenue ONLY for paid bookings
+        calculated_revenue=Sum(
+            'bookings__total_amount', 
+            filter=Q(bookings__payment_status='paid')
+        ), 
+        # 2. Count ONLY paid bookings (optional: remove the filter if you want to count pending too)
+        booking_count=Count(
+            'bookings', 
+            filter=Q(bookings__payment_status='paid')
+        )
     ).filter(
-        bookings__payment_status='paid'
-    ).order_by('-total_revenue')[:5]
+        # 3. Only keep cars that actually generated some paid revenue
+        calculated_revenue__isnull=False
+    ).order_by('-calculated_revenue')[:5]
     
     car_data = []
     for car in top_cars:
@@ -196,8 +205,8 @@ def top_performing_cars(request):
             'id': str(car.id),
             'name': f"{car.year} {car.make} {car.model}",
             'license_plate': car.license_plate,
-            'revenue': float(car.total_revenue) if car.total_revenue else 0,
-            'bookings': getattr(car, 'booking_count', 0) | 0,
+            'revenue': float(getattr(car, 'calculated_revenue', 0) or 0),
+            'bookings': getattr(car, 'booking_count', 0) or 0, 
             'status': car.status,
             'color': car.color_hex or '#3B82F6',
         })

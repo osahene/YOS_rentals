@@ -56,7 +56,7 @@ interface ChartsSectionProps {
 }
 
 export default function ChartsSection({ revenueData, dailyData, carDistribution, topCars }: ChartsSectionProps) {
- 
+
   // Calculate revenue growth
   const calculateGrowth = () => {
     if (revenueData.length < 2) return 0;
@@ -94,8 +94,15 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
                 <XAxis dataKey="month" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
                 <Tooltip
-                  formatter={(value: any) => [`¢${Number(value).toLocaleString()}`, 'Revenue']}
-                  labelFormatter={(label) => revenueData.find(d => d.month === label)?.month_full || label}
+                  formatter={(value: any, name: string | undefined) => {
+                    if (name === "Revenue (¢)") {
+                      return [`¢${Number(value).toLocaleString()}`, "Revenue"];
+                    }
+                    return [value, "Bookings"];
+                  }}
+                  labelFormatter={(label) =>
+                    revenueData.find(d => d.month === label)?.month_full || label
+                  }
                   contentStyle={{
                     backgroundColor: "#1F2937",
                     border: "1px solid #e5e7eb",
@@ -149,7 +156,7 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="day" stroke="#666" />
                   <YAxis stroke="#666" />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value) => [`${value} bookings`, 'Bookings']}
                     labelFormatter={(label) => dailyData.find(d => d.day === label)?.full_day || label}
                   />
@@ -208,7 +215,7 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value, name, props) => [`${props.payload.count} cars`, props.payload.name]}
                   />
                 </PieChart>
@@ -257,7 +264,7 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
                   <tr key={car.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="py-4 px-4">
                       <div className="flex items-center">
-                        <div 
+                        <div
                           className="w-8 h-8 rounded mr-3"
                           style={{ backgroundColor: car.color }}
                         ></div>
@@ -280,11 +287,10 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        car.status === 'Available' 
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${car.status === 'Available'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
                           : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                      }`}>
+                        }`}>
                         {car.status}
                       </span>
                     </td>
