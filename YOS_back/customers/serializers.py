@@ -5,11 +5,13 @@ from .models import Customer, Guarantor
 class CustomerSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
     
+    
     class Meta:
         model = Customer
         fields = [
-            'id', 'first_name', 'last_name', 'email', 'phone_number',
-            'date_of_birth', 'address', 'created_at', 'full_name'
+            'id', 'first_name', 'last_name', 'email', 'phone', 
+            'address_city', 'address_region', 'address_country', 'created_at', 'full_name', 'gps_address', 
+            'driver_license_issue_date', 'driver_license_expiry_date'
         ]
         read_only_fields = ['created_at', 'updated_at']
         
@@ -62,7 +64,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
         return None
 
 class CustomerDetailSerializer(CustomerListSerializer):
-    guarantor = GuarantorSerializer(many=True, read_only=True)
+    guarantor = GuarantorSerializer(read_only=True)
     bookings = serializers.SerializerMethodField()
     communication_preferences = serializers.JSONField(read_only=True)
     

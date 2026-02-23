@@ -2,7 +2,7 @@ import requests
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
@@ -275,7 +275,7 @@ class StaffViewSet(viewsets.ModelViewSet):
 class SalaryPaymentViewSet(viewsets.ModelViewSet):
     queryset = SalaryPayment.objects.all()
     serializer_class = SalaryPaymentSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = super().get_queryset()

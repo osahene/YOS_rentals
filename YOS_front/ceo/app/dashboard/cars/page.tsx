@@ -52,8 +52,8 @@ export default function CarsPage() {
   };
 
   // Calculate totals
-  const totalRevenue = cars.reduce((sum, car) => sum + car.total_revenue, 0);
-  const totalExpenses = cars.reduce((sum, car) => sum + car.total_expenses, 0);
+  const totalRevenue = cars.reduce((sum, car) => sum + Number(car.total_revenue), 0);
+  const totalExpenses = cars.reduce((sum, car) => sum + Number(car.total_expenses), 0);
   const maintenanceCount = cars.filter(
     (car) => car.status === "maintenance"
   ).length;
@@ -75,7 +75,7 @@ export default function CarsPage() {
     },
     {
       title: "Total Expenses",
-      value: totalExpenses,
+      value: `¢${totalExpenses.toLocaleString()}`,
       change: "",
       icon: ReceiptCent,
       color: "from-red-500 to-orange-500",

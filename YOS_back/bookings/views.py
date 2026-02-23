@@ -103,7 +103,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking.status = 'cancelled'
         booking.cancellation_reason = reason
         booking.cancelled_at = timezone.now()
-        booking.cancelled_by = request.user
+        # booking.cancelled_by = self.request.user if self.request.user.is_authenticated else "system"
         booking.save()
         
         # Update car status
@@ -111,7 +111,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking.car.save()
         
         # Send cancellation notification
-        self.send_cancellation_notification(booking)
+        # self.send_cancellation_notification(booking)
         
         return Response({'status': 'cancelled'})
     
@@ -448,49 +448,103 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=500)
     
     
+    def _normalize_phone(self, phone):
+        """Return phone in international format used by mNotify (e.g. '233XXXXXXXXX') or None."""
+        if not phone:
+            return None
+        phone = phone.strip()
+        # remove leading plus
+        if phone.startswith('+'):
+            phone = phone[1:]
+        # local format starts with 0 -> convert to 233...
+        if phone.startswith('0'):
+            phone = '233' + phone[1:]
+        return phone
+
     def _send_confirmation_sms(self, booking):
-        """Send a booking confirmation SMS via mNotify."""
+        """Send a booking confirmation SMS via mNotify.
+        - customer gets the standard confirmation
+        - guarantor (if present) gets a separate guarantor-specific message
+        """
         customer = booking.customer
-        print('booking', booking)
+        guarantor = booking.guarantor
 
         if not customer or not customer.phone:
             return Response({'error': 'Customer has no phone number'}, status=400)
 
-        phone = customer.phone
-        # Convert local format (0XX...) to international (233XX...)
-        if phone.startswith('0'):
-            phone = '233' + phone[1:]
+        customer_phone = self._normalize_phone(customer.phone)
+        guarantor_phone = self._normalize_phone(guarantor.phone) if guarantor and getattr(guarantor, 'phone', None) else None
 
-        # Construct a professional message
+        # Prepare message content
         start = booking.start_date.strftime('%d %b %Y')
         end = booking.end_date.strftime('%d %b %Y')
-        message = (
+        customer_message = (
             f"Dear {customer.first_name}, your booking for {booking.car.make} {booking.car.model} "
             f"from {start} to {end} has been confirmed. Total: GHS {booking.total_amount:.2f}. "
             f"Pickup: {booking.pickup_location or 'our office'}. Thank you for choosing us!"
         )
 
-        # mNotify API call
-        endpoint = 'https://api.mnotify.com/api/sms/quick'
-        api_key = settings.MNOFTIFY_SMS
-        url = f"{endpoint}?key={api_key}"
+        # A different (shorter/explicit) message for the guarantor
+        if guarantor:
+            guarantor_name = getattr(guarantor, 'first_name', 'Guarantor')
+        else:
+            guarantor_name = 'Guarantor'
+        guarantor_message = (
+            f"Dear {guarantor_name}, you are listed as guarantor for {customer.first_name} {customer.last_name} "
+            f"for the booking of {booking.car.make} {booking.car.model} from {start} to {end}. "
+            f"If this is incorrect, contact us immediately. Ref: {booking.id}"
+        )
 
-        payload = {
-            "recipient": [phone],
-            "sender": settings.MNOTIFY_SENDER_ID or "mNotify",
-            "message": message,
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOFTIFY_SMS  # kept your original setting name
+        url = f"{endpoint}?key={api_key}"
+        sender = getattr(settings, 'MNOTIFY_SENDER_ID', 'mNotify')
+
+        results = {}
+        session = requests.Session()
+
+        # Send to customer
+        payload_customer = {
+            "recipient": [customer_phone],
+            "sender": sender,
+            "message": customer_message,
             "is_schedule": "false",
             "schedule_date": ""
         }
-
         try:
-            response = requests.post(url, json=payload)
-            if response.status_code == 200:
-                return Response({'status': 'confirmation SMS sent'})
-            else:
-                return Response(
-                    {'error': 'SMS sending failed', 'details': response.text},
-                    status=500
-                )
+            resp_cust = session.post(url, json=payload_customer, timeout=10)
+            results['customer'] = {
+                'status_code': resp_cust.status_code,
+                'ok': resp_cust.status_code == 200,
+                'details': resp_cust.text
+            }
         except Exception as e:
-            return Response({'error': str(e)}, status=500)
+            results['customer'] = {'status_code': None, 'ok': False, 'details': str(e)}
+
+        # Send to guarantor if phone exists and it isn't the same as the customer
+        if guarantor_phone and guarantor_phone != customer_phone:
+            payload_guar = {
+                "recipient": [guarantor_phone],
+                "sender": sender,
+                "message": guarantor_message,
+                "is_schedule": "false",
+                "schedule_date": ""
+            }
+            try:
+                resp_guar = session.post(url, json=payload_guar, timeout=10)
+                results['guarantor'] = {
+                    'status_code': resp_guar.status_code,
+                    'ok': resp_guar.status_code == 200,
+                    'details': resp_guar.text
+                }
+            except Exception as e:
+                results['guarantor'] = {'status_code': None, 'ok': False, 'details': str(e)}
+        else:
+            results['guarantor'] = {'ok': False, 'reason': 'no guarantor phone or phone equals customer'}
+
+        if results['customer']['ok'] and (results['guarantor'].get('ok') or results['guarantor'].get('reason')):
+            return Response({'status': 'SMS sent', 'results': results})
+        if not results['customer']['ok']:
+            return Response({'error': 'Customer SMS failed', 'results': results}, status=500)
+        # otherwise customer ok but guarantor failed -> 200 with details (or you may want 207)
+        return Response({'status': 'Customer SMS sent; guarantor issue', 'results': results})

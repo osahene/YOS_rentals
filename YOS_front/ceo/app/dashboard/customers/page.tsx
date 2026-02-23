@@ -134,7 +134,7 @@ export default function CustomersPage() {
     {
       title: "Avg. Bookings",
       value: customers.length > 0 
-        ? (customers.reduce((sum, c) => sum + c.total_bookings, 0) / customers.length).toFixed(1)
+        ? (customers.reduce((sum, c) => sum + Number(c.total_bookings), 0) / customers.length).toFixed(1)
         : "0.0",
       change: "6%",
       icon: TrendingUp,

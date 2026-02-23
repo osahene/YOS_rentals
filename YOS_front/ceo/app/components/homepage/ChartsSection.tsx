@@ -169,7 +169,7 @@ export default function ChartsSection({ revenueData, dailyData, carDistribution,
                   Week Total:
                 </span>
                 <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {dailyData.reduce((sum, day) => sum + day.bookings, 0)} Bookings
+                  {dailyData.reduce((sum, day) => sum + Number(day.bookings), 0)} Bookings
                 </span>
               </div>
             </div>

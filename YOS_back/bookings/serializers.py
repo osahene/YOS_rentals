@@ -9,6 +9,8 @@ from cars.serializers import CarSerializer
 class BookingSerializer(serializers.ModelSerializer):
     car_details = CarSerializer(source='car', read_only=True)
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    driver_license_issue_date = serializers.SerializerMethodField(source='customer.driver_license_issue_date', read_only=True)
+    driver_license_expiry_date = serializers.SerializerMethodField(source='customer.driver_license_expiry_date', read_only=True)
     guarantor_name = serializers.SerializerMethodField()
     duration_days = serializers.IntegerField(read_only=True)
     start_date = serializers.DateField()
@@ -27,6 +29,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             'id', 'car', 'car_details', 'customer', 'customer_name', 
+            'driver_license_issue_date', 'driver_license_expiry_date',
             'start_date', 'end_date', 'duration_days', 'total_amount', 
             'amount_paid', 'status', 'status_display', 'payment_method',
             'payment_method_display', 'payment_status', 'payment_status_display',
@@ -39,6 +42,14 @@ class BookingSerializer(serializers.ModelSerializer):
         if obj.customer:
             return f"{obj.customer.first_name} {obj.customer.last_name}"
         return "Unknown Customer"
+    def get_driver_license_issue_date(self, obj):
+        if obj.customer and obj.customer.driver_license_issue_date:
+            return obj.customer.driver_license_issue_date
+        return "Unknown Issue Date"
+    def get_driver_license_expiry_date(self, obj):
+        if obj.customer and obj.customer.driver_license_expiry_date:
+            return obj.customer.driver_license_expiry_date
+        return "Unknown Expiry Date"
     
     def get_guarantor_name(self, obj):
         if obj.guarantor:
@@ -74,7 +85,7 @@ class CreateBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'car', 'customer', 'start_date', 'daily_rate', 'discount', 'end_date', 'pickup_location',
+            'id', 'car', 'customer', 'guarantor' 'start_date', 'daily_rate', 'discount', 'end_date', 'pickup_location',
             'dropoff_location', 'special_requests', 'driver', 'is_self_drive',
             'driver_license_id', 'driver_license_class', 'driver_license_issue_date', 'driver_license_expiry_date',
             'payment_method', 
