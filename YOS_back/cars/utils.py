@@ -13,7 +13,6 @@ def calculate_car_revenue(car_id):
     
     revenue = Booking.objects.filter(
         car_id=car_id,
-        status='completed',
         payment_status='paid'
     ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     

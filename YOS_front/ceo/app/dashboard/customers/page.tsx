@@ -11,6 +11,7 @@ import {
   selectCustomersFilters,
   selectCustomersSearchTerm,
   sendBulkMessage,
+  fetchCustomerById,
 } from "@/app/lib/store/slices/customersSlice";
 import {
   Users,
@@ -104,10 +105,21 @@ export default function CustomersPage() {
     }
   };
 
-  const handleViewDetails = (customerId: string) => {
-    setDetailCustomerId(customerId);
-    setIsDetailModalOpen(true);
-  };
+  // const handleViewDetails = (customerId: string) => {
+  //   setDetailCustomerId(customerId);
+  //   setIsDetailModalOpen(true);
+  // };
+
+const handleViewDetails = (customerId: string) => {
+  const customer = customers.find(c => c.id === customerId);
+
+  if (customer) {
+    dispatch(fetchCustomerById(customerId));
+  }
+
+  setDetailCustomerId(customerId);
+  setIsDetailModalOpen(true);
+};
 
   const customerMetrics = [
     {

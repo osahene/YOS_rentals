@@ -38,7 +38,6 @@ export default function DashboardPage() {
         setError(null);
         
         const data = await apiService.fetchDashboardData();
-        console.log("Fetched dashboard data:", data);
         setDashboardData(data);
 
         if (data.trends && data.trends.length >= 2) {

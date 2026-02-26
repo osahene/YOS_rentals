@@ -70,12 +70,14 @@ class CarDetailSerializer(CarSerializer):
     insurance_policies = InsurancePolicySerializer(many=True, read_only=True)
     maintenance_records = serializers.SerializerMethodField()
     bookings = serializers.SerializerMethodField()
+    timeline_events = serializers.SerializerMethodField()
+    analytics_data = serializers.SerializerMethodField()  
     
     class Meta(CarSerializer.Meta):
         fields = CarSerializer.Meta.fields + [
             'purchase_price', 'purchase_date', 'current_value',
             'current_insurance', 'insurance_policies', 'maintenance_records',
-            'bookings', 'is_active'
+            'bookings', 'is_active', 'timeline_events', 'analytics_data'
         ]
     
     def get_current_insurance(self, obj):
@@ -140,7 +142,7 @@ class CarDetailSerializer(CarSerializer):
         # 3. Get Bookings
         bookings = obj.bookings.all().order_by('-created_at')[:20]
         for booking in bookings:
-            customer_name = booking.customer.get_full_name() if booking.customer else "Unknown"
+            customer_name = booking.customer.full_name if booking.customer else "Unknown"
             timeline.append({
                 'id': str(booking.id),
                 'type': 'booking',
@@ -202,7 +204,7 @@ class CarDetailSerializer(CarSerializer):
             # Get bookings for this month
             month_bookings = Booking.objects.filter(
                 car=obj,
-                status='completed',
+                payment_status='paid',
                 created_at__range=[month_start, month_end]
             )
             
@@ -230,7 +232,7 @@ class CarDetailSerializer(CarSerializer):
         analytics['monthly_data'].reverse()
         
         # Calculate summary
-        total_bookings = Booking.objects.filter(car=obj, status='completed').count()
+        total_bookings = Booking.objects.filter(car=obj, payment_status='paid').count()
         total_revenue = float(obj.total_revenue) if obj.total_revenue else 0
         total_expenses = float(obj.total_expenses) if obj.total_expenses else 0
         
@@ -249,7 +251,7 @@ class CarDetailSerializer(CarSerializer):
         # Current month bookings
         current_month_bookings = Booking.objects.filter(
             car=obj,
-            status='completed',
+            payment_status='paid',
             created_at__gte=current_month
         )
         current_month_revenue = current_month_bookings.aggregate(
@@ -259,7 +261,7 @@ class CarDetailSerializer(CarSerializer):
         # Last month bookings
         last_month_bookings = Booking.objects.filter(
             car=obj,
-            status='completed',
+            payment_status='paid',
             created_at__range=[last_month, current_month - timedelta(days=1)]
         )
         last_month_revenue = last_month_bookings.aggregate(
@@ -302,16 +304,10 @@ class CarDetailSerializer(CarSerializer):
     
     def calculate_utilization_rate(self, car):
         from bookings.models import Booking
-        
-        """Calculate car utilization rate"""
-        total_days = 365  # One year period
-        booked_days = Booking.objects.filter(
-            car=car,
-            status='completed'
-        ).aggregate(
-            days=Sum('duration_days')
-        )['days'] or 0
-        
+        total_days = 365
+        # Sum duration_days by iterating (property cannot be used in aggregate)
+        bookings = Booking.objects.filter(car=car, payment_status='paid')
+        booked_days = sum(booking.duration_days for booking in bookings)
         return (booked_days / total_days) * 100 if total_days > 0 else 0
     
     def calculate_maintenance_cost_per_km(self, car):

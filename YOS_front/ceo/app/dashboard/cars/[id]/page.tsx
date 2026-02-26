@@ -1,34 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useParams, useRouter } from "next/navigation";
-import apiService from "@/app/utils/APIPaths";
 import CarDetailContent from "./CarDetailContent";
+import { fetchCarById } from "@/app/lib/store/slices/carsSlice";
+import { RootState, AppDispatch } from "@/app/lib/store/store";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function CarDetailPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const params = useParams();
   const router = useRouter();
   const [car, setCar] = useState<any>(null);
+  const selectedCar = useSelector((state: RootState) => state.cars.selectedCar);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchCar = async () => {
-      try {
-        setLoading(true);
-        const response = await apiService.fetchCarById(params.id as string);
-        setCar(response.data);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch car details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (params.id) {
-      fetchCar();
+    if (selectedCar && selectedCar.id === params.id) {
+      setCar(selectedCar);
+      setLoading(false);
+    } else {
+      dispatch(fetchCarById(params.id as string));
     }
-  }, [params.id]);
+  }, [selectedCar, params.id, dispatch]);
 
   if (loading) {
     return (

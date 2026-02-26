@@ -88,7 +88,7 @@ class Customer(models.Model):
         from decimal import Decimal
         total = Booking.objects.filter(
             customer=self,
-            status__in=['completed', 'active'],
+            # status__in=['completed', 'active'],
             payment_status__in=['paid', 'partially_paid']
         ).aggregate(total=models.Sum('total_amount'))['total'] or Decimal('0')
         return total

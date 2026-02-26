@@ -7,6 +7,7 @@ export interface Customer {
   full_name: string;
   total_bookings: number;
   total_spent: number;
+  total_amount: number;
   last_booking: string | null;
   status: 'active' | 'inactive' | 'blocked' | 'suspended';
   status_display: string;
@@ -32,7 +33,7 @@ export interface CustomerDetail extends Customer {
     sms: boolean;
     phone: boolean;
   };
-  guarantors: any[];
+  guarantors: Guarantor[];
   bookings: any[];
   last_booking_date?: string;
 }

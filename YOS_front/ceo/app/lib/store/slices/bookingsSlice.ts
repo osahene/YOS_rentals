@@ -115,6 +115,7 @@ export const fetchBookingById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchBookingById(id);
+      console.log("API Response for fetchBookingById:", response); // Debugging log
       return response.data;
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));

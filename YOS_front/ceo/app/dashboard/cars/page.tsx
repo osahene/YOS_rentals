@@ -54,9 +54,7 @@ export default function CarsPage() {
   // Calculate totals
   const totalRevenue = cars.reduce((sum, car) => sum + Number(car.total_revenue), 0);
   const totalExpenses = cars.reduce((sum, car) => sum + Number(car.total_expenses), 0);
-  const maintenanceCount = cars.filter(
-    (car) => car.status === "maintenance"
-  ).length;
+  const maintenanceCount = cars.filter((car) => car.status === "maintenance").length;
 
   const carMetrics = [
     {

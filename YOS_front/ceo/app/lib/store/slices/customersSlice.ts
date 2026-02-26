@@ -41,7 +41,8 @@ export const fetchCustomers = createAsyncThunk(
   async (params: any, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchCustomers(params);
-      return response.data;
+      console.log("API Response for fetchCustomers:", response); // Debugging log
+      return response.data.results || response.data; // Adjust based on actual API response structure
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -53,24 +54,14 @@ export const fetchCustomerById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchCustomerById(id);
-      return response.data;
+      console.log("API Response for fetchCustomerById:", response); // Debugging log
+      return response.data.results || response.data; // Adjust based on actual API response structure
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
     }
   }
 );
 
-export const fetchCustomerBookings = createAsyncThunk(
-  "customers/fetchCustomerBookings",
-  async (id: string, { rejectWithValue }) => {
-    try {
-      const response = await apiService.fetchCustomerBookings(id);
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  }
-);
 
 export const sendBulkMessage = createAsyncThunk(
   "customers/sendBulkMessage",
@@ -134,23 +125,20 @@ const customersSlice = createSlice({
     });
     builder.addCase(fetchCustomerById.fulfilled, (state, action) => {
       state.loading = false;
-      state.selectedCustomer = action.payload;
-    });
-    builder.addCase(fetchCustomerById.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload as string;
-    });
+      state.selectedCustomer = action.payload.customer;
+      state.customerBookings = action.payload.bookings || [];
+      const customerData = action.payload.customer;
 
-    // Fetch Customer Bookings
-    builder.addCase(fetchCustomerBookings.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(fetchCustomerBookings.fulfilled, (state, action) => {
-      state.loading = false;
+      // Transform guarantor (object) into an array
+      const guarantorsArray = customerData.guarantor ? [customerData.guarantor] : [];
+
+      state.selectedCustomer = {
+        ...customerData,
+        guarantors: guarantorsArray, // now an array
+      };
       state.customerBookings = action.payload.bookings || [];
     });
-    builder.addCase(fetchCustomerBookings.rejected, (state, action) => {
+    builder.addCase(fetchCustomerById.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });
@@ -190,23 +178,23 @@ export const selectCustomersSearchTerm = (state: RootState) => state.customers.s
 
 export const selectFilteredCustomers = (state: RootState) => {
   const { customers, searchTerm, filters } = state.customers;
-  
+
   return customers.filter(customer => {
     // Search filter
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.phone.includes(searchTerm);
-    
+
     // Status filter
     const matchesStatus = filters.status === 'all' || customer.status === filters.status;
-    
+
     // Loyalty tier filter
     const matchesLoyaltyTier = filters.loyalty_tier === 'all' || customer.loyalty_tier === filters.loyalty_tier;
-    
+
     // Min bookings filter
     const matchesMinBookings = customer.total_bookings >= filters.min_bookings;
-    
+
     return matchesSearch && matchesStatus && matchesLoyaltyTier && matchesMinBookings;
   });
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/app/lib/store/store";
-import { fetchCustomerBookings, clearCustomerBookings } from "@/app/lib/store/slices/customersSlice";
+import { clearCustomerBookings, fetchCustomerById } from "@/app/lib/store/slices/customersSlice";
 import {
   X,
   Calendar,
@@ -32,16 +32,16 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
   onClose,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { selectedCustomer, customerBookings, loading } = useSelector(
-    (state: RootState) => state.customers
-  );
+  const { customerBookings, loading } = useSelector((state: RootState) => state.customers);
+  const selectedCustomer = useSelector((state: RootState) => state.customers.selectedCustomer);
   const [activeTab, setActiveTab] = useState("bookings");
+  
 
   useEffect(() => {
-    if (isOpen && customerId) {
-      dispatch(fetchCustomerBookings(customerId));
+    if (isOpen && (!selectedCustomer || selectedCustomer.id !== customerId)) {
+      dispatch(fetchCustomerById(customerId));
     }
-  }, [isOpen, customerId, dispatch]);
+  }, [isOpen, customerId, selectedCustomer, dispatch]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -103,14 +103,13 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
         <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
+          className="inset-0 bg-opacity-75 transition-opacity"
         ></div>
 
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
+        <div className="inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full bg-white dark:bg-gray-800">
           {/* Header */}
-          <div className="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
@@ -135,7 +134,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  className="p-2 hover:bg-red-800 dark:hover:bg-red-700 rounded-full"
                 >
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
@@ -152,10 +151,9 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                   onClick={() => setActiveTab(tab)}
                   className={`
                     py-3 px-4 font-medium text-sm transition-colors border-b-2
-                    ${
-                      activeTab === tab
-                        ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    ${activeTab === tab
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                     }
                   `}
                 >
@@ -195,7 +193,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                       <span className="text-gray-600 dark:text-gray-400">Avg. Booking</span>
                     </div>
                     <p className="text-2xl font-bold text-gray-800 dark:text-white mt-2">
-                      ¢{selectedCustomer.total_bookings > 0 
+                      ¢{selectedCustomer.total_bookings > 0
                         ? (selectedCustomer.total_spent / selectedCustomer.total_bookings).toFixed(2)
                         : '0.00'}
                     </p>
@@ -206,8 +204,8 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                       <span className="text-gray-600 dark:text-gray-400">Last Booking</span>
                     </div>
                     <p className="text-lg font-bold text-gray-800 dark:text-white mt-2">
-                      {selectedCustomer.last_booking_date
-                        ? new Date(selectedCustomer.last_booking_date).toLocaleDateString()
+                      {selectedCustomer.last_booking
+                        ? new Date(selectedCustomer.last_booking).toLocaleDateString()
                         : 'Never'}
                     </p>
                   </div>
@@ -343,7 +341,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
             {/* Guarantors Tab */}
             {activeTab === "guarantors" && (
               <div>
-                {selectedCustomer.guarantors.length > 0 ? (
+                {selectedCustomer.guarantors && Array.isArray(selectedCustomer.guarantors) && selectedCustomer.guarantors.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {selectedCustomer.guarantors.map((guarantor) => (
                       <div
@@ -473,11 +471,10 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                       {selectedCustomer.driver_license_expiry_date && (
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-400">License Expiry</span>
-                          <span className={`font-medium ${
-                            new Date(selectedCustomer.driver_license_expiry_date) < new Date()
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }`}>
+                          <span className={`font-medium ${new Date(selectedCustomer.driver_license_expiry_date) < new Date()
+                            ? "text-red-600"
+                            : "text-green-600"
+                            }`}>
                             {new Date(selectedCustomer.driver_license_expiry_date).toLocaleDateString()}
                           </span>
                         </div>
@@ -564,9 +561,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
               >
                 Close
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                Edit Customer
-              </button>
+              
             </div>
           </div>
         </div>

@@ -89,9 +89,10 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'customer': CustomerDetailSerializer(customer).data,
             'bookings': serializer.data,
             'total_bookings': bookings.count(),
-            'total_spent': float(customer.total_spent),
-            'active_bookings': bookings.filter(status='active').count(),
-            'completed_bookings': bookings.filter(status='completed').count()
+            'total_spent': float(bookings.aggregate(total=Sum('total_amount'))['total'] or 0),
+            'active_bookings': bookings.filter(payment_status='paid').count(),
+            'completed_bookings': bookings.filter(payment_status='paid').count(),
+            'last_booking_date': customer.last_booking_date
         })
     
     @action(detail=True, methods=['post'])
