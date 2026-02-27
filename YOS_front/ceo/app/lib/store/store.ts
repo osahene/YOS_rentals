@@ -4,6 +4,7 @@ import { persistStore, persistReducer } from "redux-persist";
 import authReducer from './slices/authSlice'
 import passwordResetReducer from './slices/passwrodResetSlice';
 import carsReducer from './slices/carsSlice';
+import reportsReducer from './slices/reportsSlice';
 import customersReducer from './slices/customersSlice';
 import bookingsReducer from './slices/bookingsSlice';
 import staffReducer from './slices/staffSlice';
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   customers: customersReducer,
   bookings: bookingsReducer,
   staff: staffReducer,
+  reports: reportsReducer,
   ui: uiReducer,
 });
 const persistedReducer = persistReducer(rootPersistConfig, rootReducer);
@@ -33,11 +35,9 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-      ignoredActions: ["persist/PERSIST", "persist/REHYDRATE", "persist/REGISTER", "persist/FLUSH", "persist/PAUSE", "persist/PURGE"],
-        // Ignore these field paths in all actions
+        ignoredActions: ["persist/PERSIST", "persist/REHYDRATE", "persist/REGISTER", "persist/FLUSH", "persist/PAUSE", "persist/PURGE"],
         ignoredActionPaths: ['payload.vehicle', 'payload.customer', 'payload.staff', 'payload.booking', 'meta.arg', 'payload'],
-        // Ignore these paths in the state
-        ignoredPaths: ['cars.selectedCar', 'customers.selectedCustomer', 'bookings.selectedBooking', 'staff.selectedStaff'],
+        ignoredPaths: ['cars.selectedCar', 'customers.selectedCustomer', 'bookings.selectedBooking', 'staff.selectedStaff', 'reports.report', 'reports.projections'],
       },
     }),
 });

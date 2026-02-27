@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import apiService from "@/app/utils/APIPaths";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "@/app/lib/store/store";
+import {
+  fetchFinancialReport,
+  fetchFinancialProjections,
+  selectFinancialReport,
+  selectFinancialProjections,
+  selectReportsLoading,
+  selectReportsError,
+  clearReport,
+} from "@/app/lib/store/slices/reportsSlice";
 import {
   FileText,
   BarChart3,
@@ -39,49 +49,29 @@ import {
   Area,
 } from "recharts";
 import { useReactToPrint } from "react-to-print";
-
 import * as XLSX from "xlsx";
 
-// Types
-interface FinancialReport {
-  executive_summary: any;
-  income_statement: any;
-  balance_sheet: any;
-  cash_flow_statement: any;
-  key_metrics: any;
-  vehicle_performance: any[];
-  trend_analysis: any[];
-  financial_ratios: any;
-  management_discussion: any;
-  risk_assessment: any;
-  period: any;
-  generated_at: string;
-  report_id: string;
-}
-
-interface FinancialProjection {
-  projections: any[];
-  base_year: number;
-  assumptions: any;
-  sensitivity_analysis: any[];
-}
 
 export default function FinancialReportPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Local UI state (not stored in Redux)
   const [reportType, setReportType] = useState<"quarterly" | "annual" | "monthly">("quarterly");
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [quarter, setQuarter] = useState<number>(Math.ceil((new Date().getMonth() + 1) / 3));
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
   const [includeProjections, setIncludeProjections] = useState<boolean>(true);
-  const [report, setReport] = useState<FinancialReport | null>(null);
-  const [projections, setProjections] = useState<FinancialProjection | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [exporting, setExporting] = useState<boolean>(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(["executive", "income", "metrics", "ratios"])
   );
+
+  // Redux state
+  const report = useSelector(selectFinancialReport);
+  const projections = useSelector(selectFinancialProjections);
+  const loading = useSelector(selectReportsLoading);
+  const error = useSelector(selectReportsError);
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -93,9 +83,8 @@ export default function FinancialReportPage() {
     setExpandedSections(newExpanded);
   };
 
-  // Fetch financial report
-  const fetchFinancialReport = useCallback(async () => {
-    setLoading(true);
+  // Fetch financial report and optionally projections
+  const fetchData = useCallback(async () => {
     try {
       const params: any = {
         type: reportType,
@@ -112,35 +101,33 @@ export default function FinancialReportPage() {
         params.vehicle_id = selectedVehicle;
       }
 
-      const response = await apiService.fetchComprehensiveFinancialReport(params);
-      setReport(response.data);
+      // Dispatch main report fetch
+      await dispatch(fetchFinancialReport(params)).unwrap();
 
       // Fetch projections if enabled
       if (includeProjections) {
-        const projResponse = await apiService.fetchFinancialProjections({
+        dispatch(fetchFinancialProjections({
           years: 3,
           growth_rate: 15,
-        });
-        setProjections(projResponse.data);
+        }));
       }
-    } catch (error) {
-      console.error("Error fetching financial report:", error);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      // Error is already in Redux state
+      console.error("Failed to fetch report:", err);
     }
-  }, [reportType, year, quarter, month, selectedVehicle, includeProjections]);
+  }, [dispatch, reportType, year, quarter, month, selectedVehicle, includeProjections]);
 
+  // Initial fetch and when params change
   useEffect(() => {
-    fetchFinancialReport();
-  }, [fetchFinancialReport]);
+    fetchData();
+  }, [fetchData]);
 
-  // Export functions
+  // Export functions (unchanged, but use report from Redux)
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
     documentTitle: `Financial-Report-${report?.report_id || Date.now()}`,
     onAfterPrint: () => alert("Report printed successfully"),
   });
-
 
   const exportToExcel = () => {
     if (!report) return;
@@ -230,7 +217,6 @@ export default function FinancialReportPage() {
   // Chart data preparation
   const prepareRevenueExpenseChart = () => {
     if (!report?.trend_analysis) return [];
-
     return report.trend_analysis.map(item => ({
       period: item.period,
       revenue: item.revenue,
@@ -240,7 +226,6 @@ export default function FinancialReportPage() {
 
   const prepareExpenseBreakdownChart = () => {
     if (!report?.income_statement) return [];
-
     const expenses = report.income_statement.operating_expenses;
     return [
       { name: "Maintenance", value: expenses.maintenance },
@@ -266,7 +251,6 @@ export default function FinancialReportPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Navigation Header */}
@@ -284,13 +268,13 @@ export default function FinancialReportPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
+               <button
                 onClick={() => handlePrint()}
-                disabled={exporting || !report}
+                disabled={loading || !report}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                {exporting ? "Exporting..." : "Export PDF"}
+                Export PDF
               </button>
               <button
                 onClick={exportToExcel}
@@ -357,7 +341,7 @@ export default function FinancialReportPage() {
 
             <div className="flex items-end">
               <button
-                onClick={fetchFinancialReport}
+                onClick={fetchData}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2"
               >
                 <Calculator className="w-4 h-4" />
@@ -796,6 +780,7 @@ export default function FinancialReportPage() {
                   </thead>
                   <tbody>
                     {report.vehicle_performance.map((vehicle, index) => (
+                      console.log(vehicle),
                       <tr
                         key={vehicle.vehicle_id}
                         className={`border-b border-gray-100 dark:border-gray-700 ${index % 2 === 0 ? "bg-gray-50/50 dark:bg-gray-800/50" : ""

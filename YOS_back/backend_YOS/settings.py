@@ -366,9 +366,13 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # REDIS CACHE CONFIG
 CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": REDIS_URL,
+    # "default": {
+    #     "BACKEND": "django.core.cache.backends.redis.RedisCache",
+    #     "LOCATION": REDIS_URL,
+    # },
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'financial_report_cache_table',
     },
     "ratelimit": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",

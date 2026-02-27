@@ -15,6 +15,8 @@ from events.models import MaintenanceRecord
 from insurance.models import InsurancePolicy
 from staff.models import SalaryPayment
 from customers.models import Customer
+from django.core.cache import cache
+from .models import ReportCacheMeta
 
 class ComprehensiveFinancialReportAPI(APIView):
     """Generate comprehensive financial reports for investors and banks"""
@@ -25,6 +27,14 @@ class ComprehensiveFinancialReportAPI(APIView):
         year = request.query_params.get('year', timezone.now().year)
         quarter = request.query_params.get('quarter', None)
         month = request.query_params.get('month', None)
+        
+        version = ReportCacheMeta.get_current_version()
+        cache_key = f"financial_report_v{version}_{report_type}_{year}_{quarter}_{month}"
+        cached_report = cache.get(cache_key)
+        
+        if cached_report is not None:
+            return Response(cached_report)
+        
         
         # Determine date range
         if report_type == 'monthly':
@@ -37,7 +47,7 @@ class ComprehensiveFinancialReportAPI(APIView):
         
         # Generate comprehensive report
         report = self.generate_comprehensive_report(start_date, end_date, report_type)
-        
+        cache.set(cache_key, report, timeout=3600)
         return Response(report)
     
     def generate_comprehensive_report(self, start_date, end_date, report_type):
@@ -231,7 +241,7 @@ class ComprehensiveFinancialReportAPI(APIView):
         total_assets = self.get_total_assets(end_date)
         total_bookings = Booking.objects.filter(
             created_at__range=[start_date, end_date],
-            status='completed'
+            payment_status='paid'
         ).count()
         
         return {
@@ -256,7 +266,7 @@ class ComprehensiveFinancialReportAPI(APIView):
         for vehicle in vehicles:
             bookings = Booking.objects.filter(
                 car=vehicle,
-                status='completed',
+                payment_status='paid',
                 created_at__range=[start_date, end_date]
             )
             # Revenue
@@ -311,7 +321,7 @@ class ComprehensiveFinancialReportAPI(APIView):
             month_revenue = self.get_total_revenue(current, month_end)
             month_bookings = Booking.objects.filter(
                 created_at__range=[current, month_end],
-                status='completed'
+                payment_status='paid'
             ).count()
             
             trend_data.append({
@@ -382,7 +392,7 @@ class ComprehensiveFinancialReportAPI(APIView):
     def get_total_revenue(self, start_date, end_date):
         revenue = Booking.objects.filter(
             created_at__range=[start_date, end_date],
-            status='completed'
+            payment_status='paid'
         ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
         return revenue
     
@@ -399,7 +409,7 @@ class ComprehensiveFinancialReportAPI(APIView):
     
     def get_total_assets(self, as_of_date):
         cars = Car.objects.filter(is_active=True)
-        total_value = sum(car.current_value or Decimal('0') for car in cars)
+        total_value = sum(getattr(car, 'get_current_value', Decimal('0')) for car in cars)
         return total_value + Decimal('0')  # Add cash and other assets
     
     def get_month_range(self, year, month):
@@ -440,7 +450,7 @@ class ComprehensiveFinancialReportAPI(APIView):
             return 0
 
         bookings_qs = Booking.objects.filter(
-            status='completed',
+            payment_status='paid',
             start_date__lte=end_date,
             end_date__gte=start_date
         ).annotate(
@@ -516,8 +526,7 @@ class ComprehensiveFinancialReportAPI(APIView):
     def get_current_assets(self, as_of_date):
         cash = Decimal('0')
         receivables = Booking.objects.filter(
-            payment_status='pending',
-            status='completed'
+            payment_status='paid',
         ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
         return cash + receivables
     
@@ -564,7 +573,7 @@ class ComprehensiveFinancialReportAPI(APIView):
     def calculate_average_daily_rate(self, start_date, end_date):
         bookings = Booking.objects.filter(
             created_at__range=[start_date, end_date],
-            status='completed'
+            payment_status='paid'
         )
         total_revenue = bookings.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
 
