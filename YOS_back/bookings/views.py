@@ -329,7 +329,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         # Vehicle type distribution
         vehicle_distribution = Booking.objects.filter(
             created_at__range=[start_date, end_date]
-        ).values('car__category').annotate(
+        ).values('car__make').annotate(
             count=Count('id')
         ).order_by('-count')
         
@@ -337,7 +337,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         colors = ['#3B82F6', '#8B5CF6', '#10B981', '#EF4444', '#F59E0B']
         for i, item in enumerate(vehicle_distribution):
             vehicle_data.append({
-                'name': item['car__category'] or 'Unknown',
+                'name': item['car__make'] or 'Unknown',
                 'value': item['count'],
                 'color': colors[i % len(colors)]
             })

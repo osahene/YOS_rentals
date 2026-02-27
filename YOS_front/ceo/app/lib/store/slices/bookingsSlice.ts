@@ -115,7 +115,6 @@ export const fetchBookingById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchBookingById(id);
-      console.log("API Response for fetchBookingById:", response); // Debugging log
       return response.data;
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
@@ -425,7 +424,7 @@ export const selectFilteredBookings = (state: RootState) => {
       booking.customer.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customer.phone.includes(searchTerm) ||
-      booking.car.license_plate.includes(searchTerm);
+      booking.car_details.license_plate.includes(searchTerm);
     
     // Status filter
     const matchesStatus = filters.status === 'all' || booking.status === filters.status;
@@ -441,7 +440,7 @@ export const selectFilteredBookings = (state: RootState) => {
     
     // Vehicle type filter
     const matchesVehicleType = filters.vehicleType === 'all' || 
-      booking.car.category === filters.vehicleType;
+      booking.car_details.category === filters.vehicleType;
     
     // Amount filter
     const matchesAmount = booking.total_amount >= filters.minAmount && 

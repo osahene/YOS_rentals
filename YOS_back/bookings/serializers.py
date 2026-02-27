@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 from django.utils import timezone
 from datetime import datetime
@@ -8,10 +9,10 @@ from cars.serializers import CarSerializer
 
 class BookingSerializer(serializers.ModelSerializer):
     car_details = CarSerializer(source='car', read_only=True)
-    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
-    driver_license_issue_date = serializers.SerializerMethodField(source='customer.driver_license_issue_date', read_only=True)
-    driver_license_expiry_date = serializers.SerializerMethodField(source='customer.driver_license_expiry_date', read_only=True)
-    guarantor_name = serializers.SerializerMethodField()
+    driver_license_expiry_date = serializers.SerializerMethodField()
+    driver_license_issue_date = serializers.SerializerMethodField()
+    customer = CustomerSerializer(read_only=True) 
+    guarantor = GuarantorSerializer(read_only=True)
     duration_days = serializers.IntegerField(read_only=True)
     start_date = serializers.DateField()
     end_date = serializers.DateField()
@@ -28,12 +29,12 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'car', 'car_details', 'customer', 'customer_name', 
+            'id', 'car', 'car_details', 'customer', 'guarantor',
             'driver_license_issue_date', 'driver_license_expiry_date',
             'start_date', 'end_date', 'duration_days', 'total_amount', 
             'amount_paid', 'status', 'status_display', 'payment_method',
             'payment_method_display', 'payment_status', 'payment_status_display',
-            'created_at', 'is_self_drive', 'guarantor', 'guarantor_name',
+            'created_at', 'is_self_drive', 'guarantor',
             'pickup_location', 'dropoff_location', 'daily_rate', 'payment_method',
         ]
         read_only_fields = ['created_at', 'updated_at']
@@ -55,6 +56,7 @@ class BookingSerializer(serializers.ModelSerializer):
         if obj.guarantor:
             return f"{obj.guarantor.first_name} {obj.guarantor.last_name}"
         return "No guarantor"
+
 
 class BookingDetailSerializer(BookingSerializer):
     customer = CustomerSerializer(read_only=True)

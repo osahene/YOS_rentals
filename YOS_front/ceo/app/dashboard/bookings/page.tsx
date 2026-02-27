@@ -423,6 +423,7 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {bookings.map((booking) => (
+                    console.log("Rendering booking:", booking), // Debugging log
                     <tr
                       key={booking.id}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -436,7 +437,7 @@ export default function BookingsPage() {
                       <td className="py-3 px-4">
                         <div className="flex items-center">
                           <Car className="w-4 h-4 text-gray-400 mr-2" />
-                          {booking.car.make} {booking.car.model}
+                          {booking.car_details.make} {booking.car_details.model}
                         </div>
                       </td>
                       <td className="py-3 px-4">

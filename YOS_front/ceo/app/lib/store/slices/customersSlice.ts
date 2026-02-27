@@ -41,7 +41,6 @@ export const fetchCustomers = createAsyncThunk(
   async (params: any, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchCustomers(params);
-      console.log("API Response for fetchCustomers:", response); // Debugging log
       return response.data.results || response.data; // Adjust based on actual API response structure
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
@@ -54,7 +53,6 @@ export const fetchCustomerById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await apiService.fetchCustomerById(id);
-      console.log("API Response for fetchCustomerById:", response); // Debugging log
       return response.data.results || response.data; // Adjust based on actual API response structure
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));

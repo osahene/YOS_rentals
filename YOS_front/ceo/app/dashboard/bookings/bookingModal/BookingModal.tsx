@@ -66,7 +66,6 @@ interface BookingModalProps {
 
 export default function BookingModal({ isOpen, onClose, booking }: BookingModalProps) {
   if (!isOpen) return null;
-
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -101,7 +100,7 @@ export default function BookingModal({ isOpen, onClose, booking }: BookingModalP
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+        <div className=" inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
 
         {/* Modal panel */}
         <div className="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 rounded-2xl shadow-xl sm:my-8">
@@ -263,12 +262,12 @@ export default function BookingModal({ isOpen, onClose, booking }: BookingModalP
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
-                      <div className="font-semibold">₵{booking.total_amount.toFixed(2)}</div>
+                      <div className="font-semibold">₵{Number(booking.total_amount || 0).toFixed(2)}</div>
                     </div>
-                    <div>
+                    {/* <div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Amount Paid</div>
                       <div className="font-semibold">₵{booking.amount_paid?.toFixed(2) || '0.00'}</div>
-                    </div>
+                    </div> */}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -313,14 +312,6 @@ export default function BookingModal({ isOpen, onClose, booking }: BookingModalP
             >
               Close
             </button>
-            <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-              Edit Booking
-            </button>
-            {booking.status === 'active' && (
-              <button className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
-                Mark as Returned
-              </button>
-            )}
           </div>
         </div>
       </div>

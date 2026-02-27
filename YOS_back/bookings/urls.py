@@ -6,9 +6,9 @@ router = DefaultRouter()
 router.register(r'', BookingViewSet, basename='booking')
 
 urlpatterns = [
-    path('', include(router.urls)),
     # Custom endpoints
     path('metrics/', BookingViewSet.as_view({'get': 'dashboard_metrics'}), name='dashboard-metrics'),
     path('trends/', BookingViewSet.as_view({'get': 'booking_trends'}), name='booking-trends'),
     path('recent/', BookingViewSet.as_view({'get': 'recent_bookings'}), name='recent-bookings'),
+    path('', include(router.urls)),
 ]

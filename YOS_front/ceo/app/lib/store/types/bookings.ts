@@ -35,6 +35,19 @@ export interface Booking {
     fuel_type: string;
     transmission: string;
   };
+  car_details: {
+    id: number;
+    make: string;
+    model: string;
+    year: number;
+    license_plate: string;
+    category: string;
+    color: string;
+    daily_rate: number;
+    mileage: number;
+    fuel_type: string;
+    transmission: string;
+  };
   start_date: string;
   end_date: string;
   pickup_location: string;
