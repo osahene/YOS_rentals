@@ -43,6 +43,7 @@ export interface Car {
   model: string;
   year: number;
   color: string;
+  car_type?: string;
   registrationDate: string;
   // dailyRate?: number;
   depreciationRate?: number;

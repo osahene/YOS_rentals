@@ -83,10 +83,10 @@ export const createCar = createAsyncThunk<Car, CarFormData, { rejectValue: strin
 
 export const updateCar = createAsyncThunk(
   "cars/updateCar",
-  async ({ id, carData }: { id: string; carData: Partial<Car> }, { rejectWithValue }) => {
+  async ({ id, carData }: { id: string; carData: FormData }, { rejectWithValue }) => {
     try {
       const response = await apiService.updateCar(id, carData);
-      return response.data.data;
+      return response.data.data;  // adjust based on your API response shape
     } catch (error: any) {
       return rejectWithValue(getErrorMessage(error));
     }

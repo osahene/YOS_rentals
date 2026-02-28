@@ -73,10 +73,8 @@ export const fetchFinancialReport = createAsyncThunk<
   }
 });
 
-export const fetchFinancialProjections = createAsyncThunk<
-  FinancialProjection,
-  FetchProjectionsParams,
-  { rejectValue: string }
+export const fetchFinancialProjections = createAsyncThunk<FinancialProjection,
+  FetchProjectionsParams,{ rejectValue: string }
 >("reports/fetchFinancialProjections", async (params, { rejectWithValue }) => {
   try {
     const response = await apiService.fetchFinancialProjections(params);

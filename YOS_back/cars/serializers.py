@@ -409,3 +409,88 @@ class CreateCarSerializer(serializers.ModelSerializer):
     def get_image_urls(self, obj):
         # Return the list of URLs stored in obj.images (default to empty list)
         return obj.images or []
+    
+class UpdateCarSerializer(serializers.ModelSerializer):
+    features = serializers.JSONField(required=False)
+    images_to_keep = serializers.JSONField(required=False, write_only=True)  # Changed to JSONField
+    new_images = serializers.ListField(
+        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
+        required=False,
+        write_only=True
+    )
+    image_urls = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Car
+        fields = [
+            'make', 'model', 'year', 'color', 'color_hex', 'license_plate',
+            'vin', 'purchase_price', 'purchase_date', 'fuel_type',
+            'transmission', 'seats', 'mileage', 'features', 'description',
+            'images_to_keep', 'new_images', 'image_urls',
+        ]
+
+    def validate_features(self, value):
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return value
+        return value
+
+    def validate_license_plate(self, value):
+        if self.instance:
+            if Car.objects.exclude(pk=self.instance.pk).filter(license_plate=value).exists():
+                raise serializers.ValidationError("A car with this license plate already exists.")
+        else:
+            if Car.objects.filter(license_plate=value).exists():
+                raise serializers.ValidationError("A car with this license plate already exists.")
+        return value
+
+    def validate_vin(self, value):
+        if not value:
+            return value
+        if self.instance:
+            if Car.objects.exclude(pk=self.instance.pk).filter(vin=value).exists():
+                raise serializers.ValidationError("A car with this VIN already exists.")
+        else:
+            if Car.objects.filter(vin=value).exists():
+                raise serializers.ValidationError("A car with this VIN already exists.")
+        return value
+
+    def update(self, instance, validated_data):
+        images_to_keep_data = validated_data.pop('images_to_keep', [])
+        # Parse if string (JSON)
+        if isinstance(images_to_keep_data, str):
+            try:
+                images_to_keep = json.loads(images_to_keep_data)
+            except json.JSONDecodeError:
+                images_to_keep = []
+        else:
+            images_to_keep = images_to_keep_data
+
+        # Ensure it's a list
+        if not isinstance(images_to_keep, list):
+            images_to_keep = []
+
+        new_images = validated_data.pop('new_images', [])
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # Handle images
+        final_images = images_to_keep.copy() if images_to_keep else []
+
+        for image in new_images:
+            ext = image.name.split('.')[-1]
+            filename = f"{uuid.uuid4()}.{ext}"
+            path = default_storage.save(f'cars/{filename}', image)
+            url = default_storage.url(path)
+            final_images.append(url)
+
+        instance.images = final_images
+        instance.save()
+        return instance
+
+    def get_image_urls(self, obj):
+        return obj.images or []

@@ -11,7 +11,7 @@ import json
 
 from insurance.models import InsurancePolicy
 from .models import Car
-from .serializers import CarPublicSerializer, CarSerializer, CarDetailSerializer, CreateCarSerializer
+from .serializers import CarPublicSerializer, CarSerializer, CarDetailSerializer, CreateCarSerializer, UpdateCarSerializer
 from .filters import CarFilter
 from events.models import Event, MaintenanceRecord
 from bookings.models import Booking
@@ -34,8 +34,7 @@ class CarViewSet(viewsets.ModelViewSet):
         elif self.action == 'create':
             return CreateCarSerializer
         elif self.action in ['update', 'partial_update']:
-            # You might want a different serializer for updates
-            return CreateCarSerializer  # or create an UpdateCarSerializer
+            return UpdateCarSerializer 
         return CarSerializer
     
     def get_queryset(self): #type: ignore
