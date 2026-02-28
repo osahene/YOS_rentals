@@ -423,7 +423,6 @@ export default function BookingsPage() {
                 </thead>
                 <tbody>
                   {bookings.map((booking) => (
-                    console.log("Rendering booking:", booking), // Debugging log
                     <tr
                       key={booking.id}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"

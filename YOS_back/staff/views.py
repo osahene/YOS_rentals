@@ -67,11 +67,11 @@ class StaffViewSet(viewsets.ModelViewSet):
         """Get bookings for a driver"""
         staff = self.get_object()
         
-        if staff.role != 'driver':
-            return Response(
-                {'error': 'Only drivers have bookings'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # if staff.role != 'driver':
+        #     return Response(
+        #         {'error': 'Only drivers have bookings'},
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
         
         bookings = Booking.objects.filter(driver=staff).select_related(
             'car', 'customer'

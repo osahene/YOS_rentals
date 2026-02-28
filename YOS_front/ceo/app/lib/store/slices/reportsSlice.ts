@@ -67,7 +67,6 @@ export const fetchFinancialReport = createAsyncThunk<
 >("reports/fetchFinancialReport", async (params, { rejectWithValue }) => {
   try {
     const response = await apiService.fetchComprehensiveFinancialReport(params);
-    console.log("API Response for fetchFinancialReport:", response); // Debugging log
     return response.data; // Assuming API returns data directly
   } catch (error: any) {
     return rejectWithValue(getErrorMessage(error));
@@ -81,7 +80,6 @@ export const fetchFinancialProjections = createAsyncThunk<
 >("reports/fetchFinancialProjections", async (params, { rejectWithValue }) => {
   try {
     const response = await apiService.fetchFinancialProjections(params);
-    console.log("API Response for fetchFinancialProjections:", response); // Debugging log
     return response.data;
   } catch (error: any) {
     return rejectWithValue(getErrorMessage(error));

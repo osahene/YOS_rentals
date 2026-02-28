@@ -780,7 +780,6 @@ export default function FinancialReportPage() {
                   </thead>
                   <tbody>
                     {report.vehicle_performance.map((vehicle, index) => (
-                      console.log(vehicle),
                       <tr
                         key={vehicle.vehicle_id}
                         className={`border-b border-gray-100 dark:border-gray-700 ${index % 2 === 0 ? "bg-gray-50/50 dark:bg-gray-800/50" : ""
