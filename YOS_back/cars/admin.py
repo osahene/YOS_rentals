@@ -29,7 +29,7 @@ class CarAdmin(admin.ModelAdmin):
             'fields': ('fuel_type', 'transmission', 'seats', 'mileage', 'features', 'description')
         }),
         ('Financials', {
-            'fields': ('purchase_price', 'purchase_date')
+            'fields': ('purchase_price', 'purchase_date', 'current_value')
         }),
         ('Status & Media', {
             'fields': ('status', 'is_active', 'images', 'registered_by')

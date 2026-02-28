@@ -409,8 +409,52 @@ class ComprehensiveFinancialReportAPI(APIView):
     
     def get_total_assets(self, as_of_date):
         cars = Car.objects.filter(is_active=True)
-        total_value = sum(getattr(car, 'get_current_value', Decimal('0')) for car in cars)
-        return total_value + Decimal('0')  # Add cash and other assets
+        total_value = Decimal('0')
+        for car in cars:
+            # Use the depreciation function, but with the report's "as_of_date"
+            years_old = (as_of_date - car.purchase_date).days / 365.25
+            if years_old >= 5:
+                value = Decimal('0')
+            else:
+                depreciation_rate = Decimal('0.2')
+                value = car.purchase_price * (1 - (depreciation_rate * Decimal(years_old)))
+                value = max(value, Decimal('0'))
+            total_value += value
+        # If you ever add other assets (cash, bank accounts), add them here
+        return total_value
+    
+    def get_cumulative_net_profit(self, as_of_date):
+        """Net profit from the beginning of time until as_of_date"""
+        # Find the earliest booking date (or use a fixed start date)
+        first_booking = Booking.objects.order_by('created_at').first()
+        if first_booking:
+            start = first_booking.created_at.date()
+        else:
+            start = date(2000, 1, 1)  # fallback
+
+        revenue = Booking.objects.filter(
+            created_at__date__lte=as_of_date,
+            payment_status='paid'
+        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+        # Expenses: maintenance (all completed up to as_of_date)
+        maintenance = MaintenanceRecord.objects.filter(
+            created_at__date__lte=as_of_date,
+            status='completed'
+        ).aggregate(total=Sum('cost'))['total'] or Decimal('0')
+
+        # Insurance: sum of all policy amounts (simplified)
+        insurance = InsurancePolicy.objects.filter(
+            start_date__lte=as_of_date
+        ).aggregate(total=Sum('insurance_amount'))['total'] or Decimal('0')
+
+        # Salaries: all paid up to as_of_date
+        salaries = SalaryPayment.objects.filter(
+            is_paid=True,
+            month__lte=as_of_date
+        ).aggregate(total=Sum('net_salary'))['total'] or Decimal('0')
+
+        return revenue - (maintenance + insurance + salaries)
     
     def get_month_range(self, year, month):
         if month is None:
@@ -517,18 +561,38 @@ class ComprehensiveFinancialReportAPI(APIView):
         cars = Car.objects.filter(is_active=True)
         total = Decimal('0')
         for car in cars:
-            if car.purchase_price and car.current_value:
-                annual_dep = (car.purchase_price - car.current_value) / 5  # 5 year life
-                months = (end_date - start_date).days / 30
-                total += annual_dep * Decimal(months / 12)
+            # Straight-line over 5 years
+            annual_dep = car.purchase_price / 5
+            # Number of days in the period that the car existed
+            if car.purchase_date > end_date:
+                continue  # not purchased yet
+            effective_start = max(start_date, car.purchase_date)
+            effective_end = end_date
+            if effective_start > effective_end:
+                continue
+            days_in_period = (effective_end - effective_start).days + 1
+            total += annual_dep * Decimal(days_in_period / 365)
         return total
     
     def get_current_assets(self, as_of_date):
-        cash = Decimal('0')
+        # Estimate cash
+        contributed = self.get_contributed_capital()  # we'll define this next
+        cumulative_profit = self.get_cumulative_net_profit(as_of_date)
+        capex = self.get_cumulative_capex(as_of_date)  # total spent on cars
+        cash = contributed + cumulative_profit - capex
+
+        # Receivables: bookings that are completed but not paid (should be none, but keep for safety)
         receivables = Booking.objects.filter(
-            payment_status='paid',
+            status='completed',
+            payment_status='pending'
         ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
         return cash + receivables
+    
+    def get_cumulative_capex(self, as_of_date):
+        return Car.objects.filter(
+            purchase_date__lte=as_of_date
+        ).aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
     
     def get_fixed_assets(self, as_of_date):
         return self.get_total_assets(as_of_date)
@@ -541,11 +605,10 @@ class ComprehensiveFinancialReportAPI(APIView):
         return self.get_current_liabilities(as_of_date)
     
     def get_contributed_capital(self):
-        return Decimal('0')
+        return Car.objects.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
     
     def get_retained_earnings(self, as_of_date):
-        start_of_year = datetime(as_of_date.year, 1, 1).date()
-        return self.get_net_profit(start_of_year, as_of_date)
+        return self.get_cumulative_net_profit(as_of_date)
     
     def get_capital_expenditures(self, start_date, end_date):
         return Car.objects.filter(
