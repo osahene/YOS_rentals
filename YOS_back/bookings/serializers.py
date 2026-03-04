@@ -87,7 +87,7 @@ class CreateBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'car', 'customer', 'guarantor' 'start_date', 'daily_rate', 'discount', 'end_date', 'pickup_location',
+            'id', 'car', 'customer', 'guarantor', 'start_date', 'daily_rate', 'discount', 'end_date', 'pickup_location',
             'dropoff_location', 'special_requests', 'driver', 'is_self_drive',
             'driver_license_id', 'driver_license_class', 'driver_license_issue_date', 'driver_license_expiry_date',
             'payment_method', 
