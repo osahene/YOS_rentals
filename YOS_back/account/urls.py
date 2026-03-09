@@ -6,9 +6,10 @@ from .views import (
     VerifyEmailView, SendPhoneOTPView, 
     VerifyPhoneOTPView, RequestPasswordResetView, 
     VerifySecurityAnswersView, ResetPasswordView, 
-    SecurityQuestionListView
+    SecurityQuestionListView, health_check
 )
 urlpatterns = [
+    path("health/", health_check, name="health"),
     path("register/", RegistrationView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),

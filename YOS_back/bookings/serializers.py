@@ -66,7 +66,7 @@ class BookingDetailSerializer(BookingSerializer):
     class Meta(BookingSerializer.Meta):
         fields = BookingSerializer.Meta.fields + [
             'customer', 'guarantor', 'pickup_location', 'dropoff_location',
-            'special_requests', 'driver', 'is_self_drive', 'driver_license_id',
+            'special_requests', 'driver', 'is_self_drive', 'driver_license_id', 'created_at',
             'driver_license_class', 'refund_amount', 'late_fee', 'penalty_amount',
             'actual_return_time', 'cancellation_reason', 'mobile_money_provider',
             'mobile_money_number', 'pay_in_slip_bank', 'pay_in_slip_number'
