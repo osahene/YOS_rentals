@@ -62,31 +62,154 @@ class BookingViewSet(viewsets.ModelViewSet):
         car = serializer.validated_data['car']
         start_date = serializer.validated_data['start_date']
         end_date = serializer.validated_data['end_date']
-        payment_method = serializer.validated_data['payment_method']
-        
         
         if not self.is_car_available(car, start_date, end_date):
             raise serializers.ValidationError(
                 f"Car {car.license_plate} is not available for the selected dates"
             )
+            
+        today = timezone.now().date()
+        days_diff = (start_date - today).days
+        
+        if days_diff > 3:
+            car_status = 'reserved'
+            booking_status = 'reserved'
+        else:
+            car_status = 'rented'
+            booking_status = 'rented'
 
         # Set created_by only if user is authenticated
-        if self.request.user.is_authenticated:
-            booking = serializer.save(created_by=self.request.user)
-        else:
-            booking = serializer.save(created_by=None)  # null is allowed
+        booking = serializer.save(created_by=self.request.user if self.request.user.is_authenticated else None)
 
-        # Update car status if booking starts today
-        if start_date == timezone.now().date():
-            car.status = 'rented'
-            car.save()
+        booking.status = booking_status
+        booking.save(update_fields=['status'])
         
-        if payment_method == 'cash':
+        car.status = car_status
+        car.save(update_fields=['status'])
+        
+        # Payment handling (cash = paid immediately)
+        if serializer.validated_data.get('payment_method') == 'cash':
             booking.payment_status = 'paid'
-            booking.save()
+            booking.save(update_fields=['payment_status'])
 
         # Send confirmation (placeholder)
         self._send_confirmation_sms(booking)
+        
+        
+    @action(detail=True, methods=['post'], url_path='extend')
+    def extend(self, request, pk=None):
+        """Extend a rented booking."""
+        booking = self.get_object()
+        
+        # Validate booking can be extended
+        if booking.status not in ['rented', 'extended_booking']:
+            return Response(
+                {'error': 'Only rented bookings can be extended.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        new_end_date_str = request.data.get('new_end_date')
+        if not new_end_date_str:
+            return Response(
+                {'error': 'new_end_date is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from datetime import datetime
+            new_end_date = datetime.strptime(new_end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response(
+                {'error': 'Invalid date format. Use YYYY-MM-DD.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if new_end_date <= booking.end_date:
+            return Response(
+                {'error': 'New end date must be after current end date.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Optional guarantor data
+        guarantor_data = request.data.get('guarantor')
+        
+        try:
+            extra_amount = booking.extend_booking(new_end_date, guarantor_data)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Send extension SMS notifications
+        self._send_extension_sms(booking)
+        
+        serializer = self.get_serializer(booking)
+        return Response({
+            'message': 'Booking extended successfully.',
+            'extra_amount': float(extra_amount),
+            'booking': serializer.data
+        })
+
+    def _send_extension_sms(self, booking):
+        """Send SMS notifications for booking extension."""
+        customer = booking.customer
+        guarantor = booking.guarantor
+        
+        if not customer or not customer.phone:
+            return  # silently ignore if no phone
+        
+        customer_phone = self._normalize_phone(customer.phone)
+        guarantor_phone = self._normalize_phone(guarantor.phone) if guarantor and getattr(guarantor, 'phone', None) else None
+        
+        # Message for customer
+        customer_message = (
+            f"Dear {customer.first_name}, your booking for {booking.car.make} {booking.car.model} "
+            f"has been extended until {booking.end_date.strftime('%d %b %Y')}. "
+            f"New total amount: GHS {booking.extended_booking_amount:.2f}. Thank you!"
+        )
+        
+        # Message for guarantor
+        if guarantor:
+            guarantor_name = getattr(guarantor, 'first_name', 'Guarantor')
+            guarantor_message = (
+                f"Dear {guarantor_name}, the booking for {customer.first_name} {customer.last_name} "
+                f"has been extended until {booking.end_date.strftime('%d %b %Y')}. "
+                f"Please contact us if this is incorrect. Ref: {booking.id}"
+            )
+        else:
+            guarantor_message = None
+        
+        endpoint = 'https://api.mnotify.com/api/sms/quick'
+        api_key = settings.MNOFTIFY_SMS
+        url = f"{endpoint}?key={api_key}"
+        sender = getattr(settings, 'MNOTIFY_SENDER_ID', 'mNotify')
+        
+        session = requests.Session()
+        
+        # Send to customer
+        payload_customer = {
+            "recipient": [customer_phone],
+            "sender": sender,
+            "message": customer_message,
+            "is_schedule": "false",
+            "schedule_date": ""
+        }
+        try:
+            session.post(url, json=payload_customer, timeout=10)
+        except Exception:
+            pass  # log error if needed
+        
+        # Send to guarantor if exists and different from customer
+        if guarantor_phone and guarantor_phone != customer_phone and guarantor_message:
+            payload_guar = {
+                "recipient": [guarantor_phone],
+                "sender": sender,
+                "message": guarantor_message,
+                "is_schedule": "false",
+                "schedule_date": ""
+            }
+            try:
+                session.post(url, json=payload_guar, timeout=10)
+            except Exception:
+                pass
         
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
@@ -128,9 +251,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         actual_return_time = request.data.get('actual_return_time')
         return_mileage = request.data.get('return_mileage')
         
-        if booking.status != 'active':
+        if booking.status not in ['rented', 'extended_booking']:
             return Response(
-                {'error': 'Only active bookings can be marked as returned'},
+                {'error': 'Only rented and extended bookings can be marked as returned'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -167,69 +290,17 @@ class BookingViewSet(viewsets.ModelViewSet):
             'receipt': receipt_data
         })
     
-    @action(detail=False, methods=['get'])
-    def check_availability(self, request):
-        """Check car availability for given dates"""
-        car_id = request.query_params.get('car_id')
-        start_date = request.query_params.get('start_date')
-        end_date = request.query_params.get('end_date')
-        
-        if not all([car_id, start_date, end_date]):
-            return Response(
-                {'error': 'Missing parameters'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            car = Car.objects.get(id=car_id)
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            
-            is_available = self.is_car_available(car, start_date, end_date)
-            
-            if not is_available:
-                # Get conflicting bookings
-                conflicts = Booking.objects.filter(
-                    car=car,
-                    status__in=['confirmed', 'active'],
-                    start_date__lte=end_date,
-                    end_date__gte=start_date
-                ).exclude(id=request.query_params.get('exclude_id', None))
-                
-                conflicting_data = []
-                for conflict in conflicts:
-                    conflicting_data.append({
-                        'id': conflict.id,
-                        'customer_name': f"{conflict.customer.first_name} {conflict.customer.last_name}",
-                        'start_date': conflict.start_date,
-                        'end_date': conflict.end_date,
-                        'status': conflict.status
-                    })
-                
-                return Response({
-                    'available': False,
-                    'message': 'Car is not available for selected dates',
-                    'conflicting_bookings': conflicting_data
-                })
-            
-            return Response({'available': True})
-            
-        except Car.DoesNotExist:
-            return Response(
-                {'error': 'Car not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
     
     def is_car_available(self, car, start_date, end_date):
-        """Check if car is available for given dates"""
-        # Check car status
-        if car.status not in ['available', 'rented']:
+        """Check if car is available for given dates, considering reserved, rented, extended_booking."""
+        # Check car status – if car itself is retired, not available
+        if car.status == 'retired':
             return False
         
-        # Check for overlapping bookings
+        # Overlapping bookings that make the car unavailable
         overlapping = Booking.objects.filter(
             car=car,
-            status__in=['confirmed', 'active'],
+            status__in=['reserved', 'rented', 'extended_booking'],
             start_date__lte=end_date,
             end_date__gte=start_date
         ).exists()
@@ -554,3 +625,16 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Customer SMS failed', 'results': results}, status=500)
         # otherwise customer ok but guarantor failed -> 200 with details (or you may want 207)
         return Response({'status': 'Customer SMS sent; guarantor issue', 'results': results})
+    
+    
+    def _send_cancellation_sms(self, booking, reason=None, refund_amount=0):
+        customer = booking.customer
+        if not customer or not customer.phone:
+            return
+        phone = self._normalize_phone(customer.phone)
+        message = f"Dear {customer.first_name}, your booking for {booking.car.make} {booking.car.model} has been cancelled."
+        if reason:
+            message += f" Reason: {reason}."
+        if refund_amount > 0:
+            message += f" Refund of GHS {refund_amount:.2f} will be processed."
+        # send SMS using mNotify similar to other methods

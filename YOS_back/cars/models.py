@@ -8,9 +8,8 @@ class Car(models.Model):
     CAR_STATUS = [
         ('available', 'Available'),
         ('rented', 'Rented'),
-        ('maintenance', 'Under Maintenance'),
-        ('insurance_expired', 'Insurance Expired'),
-        ('accident', 'Accident Damaged'),
+        ('reserved', 'Reserved'),
+        ('extended_booking', 'Extended Booking'),
         ('retired', 'Retired'),
     ]
     

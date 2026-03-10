@@ -10,12 +10,11 @@ import datetime
 
 class Booking(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('active', 'Active'),
+        ('reserved', 'Reserved'),
+        ('rented', 'Rented'),
+        ('extended_booking', 'Extended Booking'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
-        ('no_show', 'No Show'),
     ]
     
     PAYMENT_METHODS = [
@@ -61,12 +60,13 @@ class Booking(models.Model):
     daily_rate = models.DecimalField(max_digits=8, decimal_places=2)
     discount = models.DecimalField(max_digits=8, decimal_places=2)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    extended_booking_amount = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
     # Payment
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='rented')
     
     # Mobile money details
     mobile_money_provider = models.CharField(max_length=50, blank=True)
@@ -147,3 +147,36 @@ class Booking(models.Model):
             late_fee = base_penalty * Decimal('0.1')
             return base_penalty + late_fee
         return Decimal('0')
+    
+    def extend_booking(self, new_end_date, guarantor_data=None):
+        """
+        Extend a rented booking.
+        - new_end_date: the new end date (must be after current end_date)
+        - guarantor_data: dict with guarantor fields (optional)
+        Returns the extra amount added.
+        """
+        if self.status not in ['rented', 'extended_booking']:
+            raise ValueError("Only rented bookings can be extended.")
+        if new_end_date <= self.end_date:
+            raise ValueError("New end date must be after current end date.")
+        
+        extra_days = (new_end_date - self.end_date).days
+        extra_amount = extra_days * self.daily_rate
+        self.total_amount += extra_amount
+        self.extended_booking_amount = extra_amount
+        self.end_date = new_end_date
+        self.status = 'extended_booking'
+        
+        if guarantor_data:
+            # Update or create guarantor for the customer
+            from customers.models import Guarantor
+            guarantor, created = Guarantor.objects.update_or_create(
+                customer=self.customer,
+                defaults=guarantor_data
+            )
+            self.guarantor = guarantor
+        
+        self.save()
+        self.car.status = 'extended_booking'
+        self.car.save()
+        return extra_amount
