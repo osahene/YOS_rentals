@@ -184,6 +184,29 @@ class CarViewSet(viewsets.ModelViewSet):
             return ((revenue - expenses) / revenue) * 100
         return 0
     
+    @action(detail=True, methods=['get'], url_path='maintenance_records')
+    def get_maintenance_records(self, request, pk=None):
+        """
+        Return all maintenance records for a specific car.
+        """
+        from events.serializers import MaintenanceRecordSerializer
+        car = self.get_object()  # fetches the car using the primary key (UUID)
+        records = car.maintenance_records.all().order_by('-start_date')
+        serializer = MaintenanceRecordSerializer(records, many=True)
+        return Response(serializer.data)
+    
+    
+    @action(detail=True, methods=['post'], url_path='maintenance_completed')
+    def mark_maintenance_completed(self, request, pk=None):
+        """
+        Return all maintenance records for a specific car.
+        """
+        from events.serializers import MaintenanceRecordSerializer
+        car = self.get_object()  # fetches the car using the primary key (UUID)
+        records = car.maintenance_records.all().order_by('-start_date')
+        serializer = MaintenanceRecordSerializer(records, many=True)
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['patch'], url_path='payload')
     def update_with_event(self, request, pk=None):
         """Handle event payload from frontend (maintenance, insurance, accident, etc.)"""
@@ -214,7 +237,7 @@ class CarViewSet(viewsets.ModelViewSet):
                 type='routine',  # you can add a subtype field in payload if needed
                 title=title,
                 description=description,
-                start_date=date,
+                start_date=payload.get('startDate'),
                 estimated_end_date=payload.get('returnDate'),
                 cost=amount,
                 garage=payload.get('garage', ''),

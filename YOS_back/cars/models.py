@@ -11,6 +11,7 @@ class Car(models.Model):
         ('reserved', 'Reserved'),
         ('extended_booking', 'Extended Booking'),
         ('retired', 'Retired'),
+        ('maintenance', 'Maintenance'),
     ]
     
     FUEL_TYPES = [

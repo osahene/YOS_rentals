@@ -2,9 +2,14 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
-
-from .models import Event, MaintenanceRecord
-from .serializers import EventSerializer, CreateEventSerializer
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from .models import Event, MaintenanceRecord, MaintenanceExtension
+from .serializers import EventSerializer, CreateEventSerializer, MaintenanceRecordSerializer
 
 class EventViewSet(viewsets.ModelViewSet):
     """
@@ -19,7 +24,7 @@ class EventViewSet(viewsets.ModelViewSet):
         return EventSerializer
     
     def get_permissions(self):
-        return [permissions.IsAdminUser()]  # Only transport manager and admin
+        return [permissions.AllowAny()]  
     
     def perform_create(self, serializer):
         event = serializer.save(created_by=self.request.user)
@@ -50,7 +55,7 @@ class EventViewSet(viewsets.ModelViewSet):
             if car.status != new_status:
                 car.status = new_status
                 car.save()
-    
+                
     def create_maintenance_record(self, event):
         """Create maintenance record from event"""
         
@@ -98,3 +103,65 @@ class EventViewSet(viewsets.ModelViewSet):
                     is_current=True,
                     created_by=event.created_by
                 )
+                
+class MaintenanceRecordViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for viewing and editing maintenance records.
+    Provides additional actions: complete, extend_deadline.
+    """
+    queryset = MaintenanceRecord.objects.all()
+    serializer_class = MaintenanceRecordSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['car', 'status']
+    search_fields = ['title', 'description', 'garage']
+    ordering_fields = ['start_date', 'estimated_end_date', 'created_at']
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        """Mark maintenance as completed."""
+        record = self.get_object()
+        actual_end_date = request.data.get('actual_end_date')
+        if actual_end_date:
+            # You may want to validate date format
+            record.complete_maintenance(actual_end_date)
+        else:
+            record.complete_maintenance()  # uses today
+        return Response({
+            'status': 'completed',
+            'record': MaintenanceRecordSerializer(record).data
+        })
+
+    @action(detail=True, methods=['post'])
+    def extend_deadline(self, request, pk=None):
+        """Extend the estimated end date and log the reason."""
+        record = self.get_object()
+        new_end_date = request.data.get('new_estimated_date')
+        reason = request.data.get('reason', '')
+
+        if not new_end_date:
+            return Response(
+                {'error': 'new_estimated_date is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create an extension log
+        MaintenanceExtension.objects.create(
+            maintenance_record=record,
+            previous_end_date=record.estimated_end_date,
+            new_end_date=new_end_date,
+            reason=reason,
+            extended_by=request.user
+        )
+
+        # Update the record's estimated end date
+        record.estimated_end_date = new_end_date
+        record.save()
+
+        return Response({
+            'status': 'extended',
+            'record': MaintenanceRecordSerializer(record).data
+        })
