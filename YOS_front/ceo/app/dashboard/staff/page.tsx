@@ -15,6 +15,7 @@ import {
   Search,
   AlertCircle,
   Eye,
+  Edit,
   BarChart3,
   TrendingUp,
   ChevronDown,
@@ -46,7 +47,7 @@ import {
   setFilter,
 
 } from "../../lib/store/slices/staffSlice";
-import { RootState, AppDispatch} from "../../lib/store/store";
+import { RootState, AppDispatch } from "../../lib/store/store";
 import {
   BarChart,
   Bar,
@@ -63,6 +64,7 @@ import {
 // Modal Components
 import AddStaffModal from "./component/AddStaffModal";
 import StaffDetailsModal from "./component/StaffDetailsModel";
+import EditStaffModal from "./component/EditStaffModal";
 import ActionConfirmationModal from "./component/ActionConfirmationModal";
 
 const formatCurrency = (amount: number) => {
@@ -87,6 +89,7 @@ export default function StaffPage() {
   // State
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showStaffDetailsModal, setShowStaffDetailsModal] = useState(false);
+  const [showStaffEditModal, setShowStaffEditModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionType, setActionType] = useState<'suspend' | 'terminate' | 'delete' | 'reactivate'>('suspend');
   const [actionReason, setActionReason] = useState('');
@@ -131,6 +134,12 @@ export default function StaffPage() {
     }
   };
 
+  const handleEditStaffDetails = async (staffId: string) => {
+    const result = await dispatch(fetchStaffById(staffId));
+    if (fetchStaffById.fulfilled.match(result)) {
+      setShowStaffEditModal(true);
+    }
+  };
   const handleActionClick = (staffId: string, action: typeof actionType) => {
     setSelectedStaffId(staffId);
     setActionType(action);
@@ -565,6 +574,7 @@ export default function StaffPage() {
                                       <Eye className="w-4 h-4 mr-1" />
                                       View Details
                                     </button>
+
                                     <button
                                       onClick={() => handleActionClick(driver.driver_id, 'suspend')}
                                       className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg"
@@ -774,7 +784,13 @@ export default function StaffPage() {
                             >
                               <Eye className="w-4 h-4 text-blue-500" />
                             </button>
-
+                            <button
+                              onClick={() => handleEditStaffDetails(staffMember.id)}
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                              title="Edit Details"
+                            >
+                              <Edit className="w-4 h-4 text-blue-500" />
+                            </button>
                             <button
                               onClick={() => handleActionClick(staffMember.id, 'suspend')}
                               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
@@ -782,8 +798,8 @@ export default function StaffPage() {
                               disabled={staffMember.status === 'suspended' || staffMember.status === 'terminated'}
                             >
                               <AlertCircle className={`w-4 h-4 ${staffMember.status === 'suspended' || staffMember.status === 'terminated'
-                                  ? 'text-gray-400'
-                                  : 'text-yellow-500'
+                                ? 'text-gray-400'
+                                : 'text-yellow-500'
                                 }`} />
                             </button>
 
@@ -794,8 +810,8 @@ export default function StaffPage() {
                               disabled={staffMember.status === 'terminated'}
                             >
                               <UserX className={`w-4 h-4 ${staffMember.status === 'terminated'
-                                  ? 'text-gray-400'
-                                  : 'text-red-500'
+                                ? 'text-gray-400'
+                                : 'text-red-500'
                                 }`} />
                             </button>
 
@@ -850,6 +866,17 @@ export default function StaffPage() {
         actionType={actionType}
         reason={actionReason}
         onReasonChange={setActionReason}
+      />
+      <EditStaffModal
+        isOpen={showStaffEditModal}
+        onClose={() => {
+          setShowStaffEditModal(false);
+          dispatch(setSelectedStaff(null));
+        }}
+        onSuccess={() => {
+          // Refresh data after edit
+          fetchData();
+        }}
       />
     </div>
   );

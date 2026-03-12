@@ -118,7 +118,7 @@ export default function StaffDetailsModal({ isOpen, onClose, staff }: StaffDetai
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 {/* Background overlay */}
-                <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+                <div className=" inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose}></div>
 
                 {/* Modal panel */}
                 <div className="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
